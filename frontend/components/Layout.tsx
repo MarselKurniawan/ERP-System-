@@ -25,16 +25,17 @@ import {
   User,
   LogOut,
   FileText,
-  Receipt
+  Receipt,
+  ChevronDown
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
+import { useCompany } from "../contexts/CompanyContext";
 
 const navigation = [
   { name: "Dashboard", href: "/", icon: Home },
   { name: "Company", href: "/company", icon: Building2 },
   { name: "Inventory", href: "/inventory", icon: Package },
   { name: "Sales", href: "/sales", icon: ShoppingCart },
-  { name: "Invoices", href: "/invoices", icon: Receipt },
   { name: "Purchasing", href: "/purchasing", icon: Truck },
   { name: "Accounting", href: "/accounting", icon: Calculator },
   { name: "Reports", href: "/reports", icon: FileText },
@@ -50,6 +51,7 @@ export default function Layout({ children }: LayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const location = useLocation();
   const { user, logout, isLoading } = useAuth();
+  const { selectedCompany, companies, setSelectedCompany } = useCompany();
 
   if (isLoading) {
     return (
@@ -125,14 +127,42 @@ export default function Layout({ children }: LayoutProps) {
       {/* Main content */}
       <div className="flex flex-1 flex-col overflow-hidden">
         <header className="flex h-16 items-center justify-between border-b bg-white px-6 lg:px-8">
-          <Button
-            variant="ghost"
-            size="sm"
-            className="lg:hidden"
-            onClick={() => setSidebarOpen(true)}
-          >
-            <Menu className="h-6 w-6" />
-          </Button>
+          <div className="flex items-center gap-4">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="lg:hidden"
+              onClick={() => setSidebarOpen(true)}
+            >
+              <Menu className="h-6 w-6" />
+            </Button>
+            
+            {selectedCompany && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" className="gap-2">
+                    <Building2 className="h-4 w-4" />
+                    <span>{selectedCompany.name}</span>
+                    <ChevronDown className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start">
+                  {companies.map((company) => (
+                    <DropdownMenuItem
+                      key={company.id}
+                      onClick={() => setSelectedCompany(company)}
+                      className={cn(
+                        "cursor-pointer",
+                        selectedCompany.id === company.id && "bg-blue-50 text-blue-600"
+                      )}
+                    >
+                      {company.name}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
+          </div>
           
           <div className="flex items-center space-x-4">
             <span className="text-sm text-gray-500">Welcome, {user.firstName}!</span>

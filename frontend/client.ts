@@ -114,6 +114,7 @@ import { generalLedgerReport as api_accounting_general_ledger_report_generalLedg
 import { listAccounts as api_accounting_list_accounts_listAccounts } from "~backend/accounting/list_accounts";
 import { listJournalEntries as api_accounting_list_journal_entries_listJournalEntries } from "~backend/accounting/list_journal_entries";
 import { profitLossReport as api_accounting_profit_loss_report_profitLossReport } from "~backend/accounting/profit_loss_report";
+import { seedChartOfAccounts as api_accounting_seed_coa_seedChartOfAccounts } from "~backend/accounting/seed_coa";
 import { seedAccounting as api_accounting_seed_data_seedAccounting } from "~backend/accounting/seed_data";
 import { trialBalance as api_accounting_trial_balance_trialBalance } from "~backend/accounting/trial_balance";
 import { updateAccount as api_accounting_update_account_updateAccount } from "~backend/accounting/update_account";
@@ -136,6 +137,7 @@ export namespace accounting {
             this.listJournalEntries = this.listJournalEntries.bind(this)
             this.profitLossReport = this.profitLossReport.bind(this)
             this.seedAccounting = this.seedAccounting.bind(this)
+            this.seedChartOfAccounts = this.seedChartOfAccounts.bind(this)
             this.trialBalance = this.trialBalance.bind(this)
             this.updateAccount = this.updateAccount.bind(this)
         }
@@ -187,12 +189,14 @@ export namespace accounting {
             return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_accounting_general_ledger_report_generalLedgerReport>
         }
 
-        /**
-         * Retrieves all active accounts from the chart of accounts.
-         */
-        public async listAccounts(): Promise<ResponseType<typeof api_accounting_list_accounts_listAccounts>> {
+        public async listAccounts(params: RequestType<typeof api_accounting_list_accounts_listAccounts>): Promise<ResponseType<typeof api_accounting_list_accounts_listAccounts>> {
+            // Convert our params into the objects we need for the request
+            const query = makeRecord<string, string | string[]>({
+                companyId: params.companyId === undefined ? undefined : String(params.companyId),
+            })
+
             // Now make the actual call to the API
-            const resp = await this.baseClient.callTypedAPI(`/accounts`, {method: "GET", body: undefined})
+            const resp = await this.baseClient.callTypedAPI(`/accounts`, {query, method: "GET", body: undefined})
             return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_accounting_list_accounts_listAccounts>
         }
 
@@ -218,6 +222,12 @@ export namespace accounting {
             // Now make the actual call to the API
             const resp = await this.baseClient.callTypedAPI(`/accounting/seed`, {method: "POST", body: undefined})
             return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_accounting_seed_data_seedAccounting>
+        }
+
+        public async seedChartOfAccounts(): Promise<ResponseType<typeof api_accounting_seed_coa_seedChartOfAccounts>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/accounting/seed-coa`, {method: "POST", body: undefined})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_accounting_seed_coa_seedChartOfAccounts>
         }
 
         /**
@@ -257,12 +267,15 @@ export namespace accounting {
 /**
  * Import the endpoint handlers to derive the types for the client.
  */
+import { assignCompany as api_auth_assign_company_assignCompany } from "~backend/auth/assign_company";
 import { createUser as api_auth_create_user_createUser } from "~backend/auth/create_user";
 import { deleteUser as api_auth_delete_user_deleteUser } from "~backend/auth/delete_user";
+import { listUserCompanies as api_auth_list_user_companies_listUserCompanies } from "~backend/auth/list_user_companies";
 import { listUsers as api_auth_list_users_listUsers } from "~backend/auth/list_users";
 import { login as api_auth_login_login } from "~backend/auth/login";
 import { logout as api_auth_logout_logout } from "~backend/auth/logout";
 import { seedUsers as api_auth_seed_data_seedUsers } from "~backend/auth/seed_data";
+import { unassignCompany as api_auth_unassign_company_unassignCompany } from "~backend/auth/unassign_company";
 import { updateProfile as api_auth_update_profile_updateProfile } from "~backend/auth/update_profile";
 import { updateUser as api_auth_update_user_updateUser } from "~backend/auth/update_user";
 import { verifyToken as api_auth_verify_token_verifyToken } from "~backend/auth/verify_token";
@@ -274,15 +287,29 @@ export namespace auth {
 
         constructor(baseClient: BaseClient) {
             this.baseClient = baseClient
+            this.assignCompany = this.assignCompany.bind(this)
             this.createUser = this.createUser.bind(this)
             this.deleteUser = this.deleteUser.bind(this)
+            this.listUserCompanies = this.listUserCompanies.bind(this)
             this.listUsers = this.listUsers.bind(this)
             this.login = this.login.bind(this)
             this.logout = this.logout.bind(this)
             this.seedUsers = this.seedUsers.bind(this)
+            this.unassignCompany = this.unassignCompany.bind(this)
             this.updateProfile = this.updateProfile.bind(this)
             this.updateUser = this.updateUser.bind(this)
             this.verifyToken = this.verifyToken.bind(this)
+        }
+
+        public async assignCompany(params: RequestType<typeof api_auth_assign_company_assignCompany>): Promise<ResponseType<typeof api_auth_assign_company_assignCompany>> {
+            // Construct the body with only the fields which we want encoded within the body (excluding query string or header fields)
+            const body: Record<string, any> = {
+                companyId: params.companyId,
+            }
+
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/auth/users/${encodeURIComponent(params.userId)}/companies`, {method: "POST", body: JSON.stringify(body)})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_auth_assign_company_assignCompany>
         }
 
         /**
@@ -296,6 +323,12 @@ export namespace auth {
 
         public async deleteUser(params: { id: number }): Promise<void> {
             await this.baseClient.callTypedAPI(`/users/${encodeURIComponent(params.id)}`, {method: "DELETE", body: undefined})
+        }
+
+        public async listUserCompanies(): Promise<ResponseType<typeof api_auth_list_user_companies_listUserCompanies>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/auth/my-companies`, {method: "GET", body: undefined})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_auth_list_user_companies_listUserCompanies>
         }
 
         /**
@@ -323,13 +356,16 @@ export namespace auth {
             await this.baseClient.callTypedAPI(`/auth/logout`, {method: "POST", body: JSON.stringify(params)})
         }
 
-        /**
-         * Seeds the database with sample user data.
-         */
         public async seedUsers(): Promise<ResponseType<typeof api_auth_seed_data_seedUsers>> {
             // Now make the actual call to the API
             const resp = await this.baseClient.callTypedAPI(`/auth/seed`, {method: "POST", body: undefined})
             return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_auth_seed_data_seedUsers>
+        }
+
+        public async unassignCompany(params: { userId: number, companyId: number }): Promise<ResponseType<typeof api_auth_unassign_company_unassignCompany>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/auth/users/${encodeURIComponent(params.userId)}/companies/${encodeURIComponent(params.companyId)}`, {method: "DELETE", body: undefined})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_auth_unassign_company_unassignCompany>
         }
 
         /**
@@ -374,8 +410,12 @@ export namespace auth {
  * Import the endpoint handlers to derive the types for the client.
  */
 import { create as api_company_create_create } from "~backend/company/create";
+import { createTag as api_company_create_tag_createTag } from "~backend/company/create_tag";
 import { deleteCompany as api_company_delete_deleteCompany } from "~backend/company/delete";
+import { deleteTag as api_company_delete_tag_deleteTag } from "~backend/company/delete_tag";
+import { getByIds as api_company_get_by_ids_getByIds } from "~backend/company/get_by_ids";
 import { list as api_company_list_list } from "~backend/company/list";
+import { listTags as api_company_list_tags_listTags } from "~backend/company/list_tags";
 import { seedCompanies as api_company_seed_data_seedCompanies } from "~backend/company/seed_data";
 import { update as api_company_update_update } from "~backend/company/update";
 
@@ -387,8 +427,12 @@ export namespace company {
         constructor(baseClient: BaseClient) {
             this.baseClient = baseClient
             this.create = this.create.bind(this)
+            this.createTag = this.createTag.bind(this)
             this.deleteCompany = this.deleteCompany.bind(this)
+            this.deleteTag = this.deleteTag.bind(this)
+            this.getByIds = this.getByIds.bind(this)
             this.list = this.list.bind(this)
+            this.listTags = this.listTags.bind(this)
             this.seedCompanies = this.seedCompanies.bind(this)
             this.update = this.update.bind(this)
         }
@@ -402,8 +446,32 @@ export namespace company {
             return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_company_create_create>
         }
 
+        public async createTag(params: RequestType<typeof api_company_create_tag_createTag>): Promise<ResponseType<typeof api_company_create_tag_createTag>> {
+            // Construct the body with only the fields which we want encoded within the body (excluding query string or header fields)
+            const body: Record<string, any> = {
+                color: params.color,
+                name:  params.name,
+            }
+
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/companies/${encodeURIComponent(params.companyId)}/tags`, {method: "POST", body: JSON.stringify(body)})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_company_create_tag_createTag>
+        }
+
         public async deleteCompany(params: { id: number }): Promise<void> {
             await this.baseClient.callTypedAPI(`/companies/${encodeURIComponent(params.id)}`, {method: "DELETE", body: undefined})
+        }
+
+        public async deleteTag(params: { companyId: number, tagId: number }): Promise<ResponseType<typeof api_company_delete_tag_deleteTag>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/companies/${encodeURIComponent(params.companyId)}/tags/${encodeURIComponent(params.tagId)}`, {method: "DELETE", body: undefined})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_company_delete_tag_deleteTag>
+        }
+
+        public async getByIds(params: RequestType<typeof api_company_get_by_ids_getByIds>): Promise<ResponseType<typeof api_company_get_by_ids_getByIds>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/companies/by-ids`, {method: "POST", body: JSON.stringify(params)})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_company_get_by_ids_getByIds>
         }
 
         /**
@@ -413,6 +481,12 @@ export namespace company {
             // Now make the actual call to the API
             const resp = await this.baseClient.callTypedAPI(`/companies`, {method: "GET", body: undefined})
             return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_company_list_list>
+        }
+
+        public async listTags(params: { companyId: number }): Promise<ResponseType<typeof api_company_list_tags_listTags>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/companies/${encodeURIComponent(params.companyId)}/tags`, {method: "GET", body: undefined})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_company_list_tags_listTags>
         }
 
         /**
@@ -514,12 +588,14 @@ export namespace inventory {
             return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_inventory_list_categories_listCategories>
         }
 
-        /**
-         * Retrieves all products with category information.
-         */
-        public async listProducts(): Promise<ResponseType<typeof api_inventory_list_products_listProducts>> {
+        public async listProducts(params: RequestType<typeof api_inventory_list_products_listProducts>): Promise<ResponseType<typeof api_inventory_list_products_listProducts>> {
+            // Convert our params into the objects we need for the request
+            const query = makeRecord<string, string | string[]>({
+                companyId: params.companyId === undefined ? undefined : String(params.companyId),
+            })
+
             // Now make the actual call to the API
-            const resp = await this.baseClient.callTypedAPI(`/products`, {method: "GET", body: undefined})
+            const resp = await this.baseClient.callTypedAPI(`/products`, {query, method: "GET", body: undefined})
             return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_inventory_list_products_listProducts>
         }
 
@@ -597,11 +673,13 @@ export namespace inventory {
  * Import the endpoint handlers to derive the types for the client.
  */
 import { agingPayablesReport as api_purchasing_aging_payables_report_agingPayablesReport } from "~backend/purchasing/aging_payables_report";
+import { createPayment as api_purchasing_create_payment_createPayment } from "~backend/purchasing/create_payment";
 import { createPurchaseOrder as api_purchasing_create_purchase_order_createPurchaseOrder } from "~backend/purchasing/create_purchase_order";
 import { createSupplier as api_purchasing_create_supplier_createSupplier } from "~backend/purchasing/create_supplier";
 import { createSupplierInvoice as api_purchasing_create_supplier_invoice_createSupplierInvoice } from "~backend/purchasing/create_supplier_invoice";
 import { deletePurchaseOrder as api_purchasing_delete_purchase_order_deletePurchaseOrder } from "~backend/purchasing/delete_purchase_order";
 import { deleteSupplier as api_purchasing_delete_supplier_deleteSupplier } from "~backend/purchasing/delete_supplier";
+import { listPayments as api_purchasing_list_payments_listPayments } from "~backend/purchasing/list_payments";
 import { listPurchaseOrders as api_purchasing_list_purchase_orders_listPurchaseOrders } from "~backend/purchasing/list_purchase_orders";
 import { listSupplierInvoices as api_purchasing_list_supplier_invoices_listSupplierInvoices } from "~backend/purchasing/list_supplier_invoices";
 import { listSuppliers as api_purchasing_list_suppliers_listSuppliers } from "~backend/purchasing/list_suppliers";
@@ -618,11 +696,13 @@ export namespace purchasing {
         constructor(baseClient: BaseClient) {
             this.baseClient = baseClient
             this.agingPayablesReport = this.agingPayablesReport.bind(this)
+            this.createPayment = this.createPayment.bind(this)
             this.createPurchaseOrder = this.createPurchaseOrder.bind(this)
             this.createSupplier = this.createSupplier.bind(this)
             this.createSupplierInvoice = this.createSupplierInvoice.bind(this)
             this.deletePurchaseOrder = this.deletePurchaseOrder.bind(this)
             this.deleteSupplier = this.deleteSupplier.bind(this)
+            this.listPayments = this.listPayments.bind(this)
             this.listPurchaseOrders = this.listPurchaseOrders.bind(this)
             this.listSupplierInvoices = this.listSupplierInvoices.bind(this)
             this.listSuppliers = this.listSuppliers.bind(this)
@@ -632,10 +712,16 @@ export namespace purchasing {
             this.updateSupplier = this.updateSupplier.bind(this)
         }
 
-        public async agingPayablesReport(): Promise<ResponseType<typeof api_purchasing_aging_payables_report_agingPayablesReport>> {
+        public async agingPayablesReport(params: RequestType<typeof api_purchasing_aging_payables_report_agingPayablesReport>): Promise<ResponseType<typeof api_purchasing_aging_payables_report_agingPayablesReport>> {
             // Now make the actual call to the API
-            const resp = await this.baseClient.callTypedAPI(`/purchasing/aging-payables-report`, {method: "GET", body: undefined})
+            const resp = await this.baseClient.callTypedAPI(`/purchasing/aging-payables-report`, {method: "POST", body: JSON.stringify(params)})
             return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_purchasing_aging_payables_report_agingPayablesReport>
+        }
+
+        public async createPayment(params: RequestType<typeof api_purchasing_create_payment_createPayment>): Promise<ResponseType<typeof api_purchasing_create_payment_createPayment>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/purchasing/payments`, {method: "POST", body: JSON.stringify(params)})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_purchasing_create_payment_createPayment>
         }
 
         /**
@@ -670,6 +756,19 @@ export namespace purchasing {
             await this.baseClient.callTypedAPI(`/suppliers/${encodeURIComponent(params.id)}`, {method: "DELETE", body: undefined})
         }
 
+        public async listPayments(params: RequestType<typeof api_purchasing_list_payments_listPayments>): Promise<ResponseType<typeof api_purchasing_list_payments_listPayments>> {
+            // Convert our params into the objects we need for the request
+            const query = makeRecord<string, string | string[]>({
+                companyId:  String(params.companyId),
+                search:     params.search,
+                supplierId: params.supplierId === undefined ? undefined : String(params.supplierId),
+            })
+
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/purchasing/payments`, {query, method: "GET", body: undefined})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_purchasing_list_payments_listPayments>
+        }
+
         /**
          * Retrieves all purchase orders with supplier information.
          */
@@ -685,12 +784,14 @@ export namespace purchasing {
             return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_purchasing_list_supplier_invoices_listSupplierInvoices>
         }
 
-        /**
-         * Retrieves all active suppliers.
-         */
-        public async listSuppliers(): Promise<ResponseType<typeof api_purchasing_list_suppliers_listSuppliers>> {
+        public async listSuppliers(params: RequestType<typeof api_purchasing_list_suppliers_listSuppliers>): Promise<ResponseType<typeof api_purchasing_list_suppliers_listSuppliers>> {
+            // Convert our params into the objects we need for the request
+            const query = makeRecord<string, string | string[]>({
+                companyId: params.companyId === undefined ? undefined : String(params.companyId),
+            })
+
             // Now make the actual call to the API
-            const resp = await this.baseClient.callTypedAPI(`/suppliers`, {method: "GET", body: undefined})
+            const resp = await this.baseClient.callTypedAPI(`/suppliers`, {query, method: "GET", body: undefined})
             return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_purchasing_list_suppliers_listSuppliers>
         }
 
@@ -762,6 +863,7 @@ export namespace purchasing {
 import { agingReceivablesReport as api_sales_aging_receivables_report_agingReceivablesReport } from "~backend/sales/aging_receivables_report";
 import { createCustomer as api_sales_create_customer_createCustomer } from "~backend/sales/create_customer";
 import { createOrder as api_sales_create_order_createOrder } from "~backend/sales/create_order";
+import { createPayment as api_sales_create_payment_createPayment } from "~backend/sales/create_payment";
 import { deleteCustomer as api_sales_delete_customer_deleteCustomer } from "~backend/sales/delete_customer";
 import { deleteOrder as api_sales_delete_order_deleteOrder } from "~backend/sales/delete_order";
 import { generateInvoice as api_sales_generate_invoice_generateInvoice } from "~backend/sales/generate_invoice";
@@ -769,6 +871,7 @@ import { getInvoice as api_sales_get_invoice_getInvoice } from "~backend/sales/g
 import { listCustomers as api_sales_list_customers_listCustomers } from "~backend/sales/list_customers";
 import { listInvoices as api_sales_list_invoices_listInvoices } from "~backend/sales/list_invoices";
 import { listOrders as api_sales_list_orders_listOrders } from "~backend/sales/list_orders";
+import { listPayments as api_sales_list_payments_listPayments } from "~backend/sales/list_payments";
 import { salesReport as api_sales_sales_report_salesReport } from "~backend/sales/sales_report";
 import { seedSales as api_sales_seed_data_seedSales } from "~backend/sales/seed_data";
 import { updateCustomer as api_sales_update_customer_updateCustomer } from "~backend/sales/update_customer";
@@ -785,6 +888,7 @@ export namespace sales {
             this.agingReceivablesReport = this.agingReceivablesReport.bind(this)
             this.createCustomer = this.createCustomer.bind(this)
             this.createOrder = this.createOrder.bind(this)
+            this.createPayment = this.createPayment.bind(this)
             this.deleteCustomer = this.deleteCustomer.bind(this)
             this.deleteOrder = this.deleteOrder.bind(this)
             this.generateInvoice = this.generateInvoice.bind(this)
@@ -792,6 +896,7 @@ export namespace sales {
             this.listCustomers = this.listCustomers.bind(this)
             this.listInvoices = this.listInvoices.bind(this)
             this.listOrders = this.listOrders.bind(this)
+            this.listPayments = this.listPayments.bind(this)
             this.salesReport = this.salesReport.bind(this)
             this.seedSales = this.seedSales.bind(this)
             this.updateCustomer = this.updateCustomer.bind(this)
@@ -823,6 +928,12 @@ export namespace sales {
             return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_sales_create_order_createOrder>
         }
 
+        public async createPayment(params: RequestType<typeof api_sales_create_payment_createPayment>): Promise<ResponseType<typeof api_sales_create_payment_createPayment>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/sales/payments`, {method: "POST", body: JSON.stringify(params)})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_sales_create_payment_createPayment>
+        }
+
         public async deleteCustomer(params: { id: number }): Promise<void> {
             await this.baseClient.callTypedAPI(`/customers/${encodeURIComponent(params.id)}`, {method: "DELETE", body: undefined})
         }
@@ -843,28 +954,50 @@ export namespace sales {
             return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_sales_get_invoice_getInvoice>
         }
 
-        /**
-         * Retrieves all active customers.
-         */
-        public async listCustomers(): Promise<ResponseType<typeof api_sales_list_customers_listCustomers>> {
+        public async listCustomers(params: RequestType<typeof api_sales_list_customers_listCustomers>): Promise<ResponseType<typeof api_sales_list_customers_listCustomers>> {
+            // Convert our params into the objects we need for the request
+            const query = makeRecord<string, string | string[]>({
+                companyId: params.companyId === undefined ? undefined : String(params.companyId),
+            })
+
             // Now make the actual call to the API
-            const resp = await this.baseClient.callTypedAPI(`/customers`, {method: "GET", body: undefined})
+            const resp = await this.baseClient.callTypedAPI(`/customers`, {query, method: "GET", body: undefined})
             return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_sales_list_customers_listCustomers>
         }
 
-        public async listInvoices(): Promise<ResponseType<typeof api_sales_list_invoices_listInvoices>> {
+        public async listInvoices(params: RequestType<typeof api_sales_list_invoices_listInvoices>): Promise<ResponseType<typeof api_sales_list_invoices_listInvoices>> {
+            // Convert our params into the objects we need for the request
+            const query = makeRecord<string, string | string[]>({
+                companyId: params.companyId === undefined ? undefined : String(params.companyId),
+            })
+
             // Now make the actual call to the API
-            const resp = await this.baseClient.callTypedAPI(`/invoices`, {method: "GET", body: undefined})
+            const resp = await this.baseClient.callTypedAPI(`/invoices`, {query, method: "GET", body: undefined})
             return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_sales_list_invoices_listInvoices>
         }
 
-        /**
-         * Retrieves all sales orders with customer information.
-         */
-        public async listOrders(): Promise<ResponseType<typeof api_sales_list_orders_listOrders>> {
+        public async listOrders(params: RequestType<typeof api_sales_list_orders_listOrders>): Promise<ResponseType<typeof api_sales_list_orders_listOrders>> {
+            // Convert our params into the objects we need for the request
+            const query = makeRecord<string, string | string[]>({
+                companyId: params.companyId === undefined ? undefined : String(params.companyId),
+            })
+
             // Now make the actual call to the API
-            const resp = await this.baseClient.callTypedAPI(`/sales-orders`, {method: "GET", body: undefined})
+            const resp = await this.baseClient.callTypedAPI(`/sales-orders`, {query, method: "GET", body: undefined})
             return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_sales_list_orders_listOrders>
+        }
+
+        public async listPayments(params: RequestType<typeof api_sales_list_payments_listPayments>): Promise<ResponseType<typeof api_sales_list_payments_listPayments>> {
+            // Convert our params into the objects we need for the request
+            const query = makeRecord<string, string | string[]>({
+                companyId:  String(params.companyId),
+                customerId: params.customerId === undefined ? undefined : String(params.customerId),
+                search:     params.search,
+            })
+
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/sales/payments`, {query, method: "GET", body: undefined})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_sales_list_payments_listPayments>
         }
 
         public async salesReport(params: RequestType<typeof api_sales_sales_report_salesReport>): Promise<ResponseType<typeof api_sales_sales_report_salesReport>> {
