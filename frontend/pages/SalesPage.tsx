@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/components/ui/use-toast";
-import { Plus, Users, ShoppingCart, Trash2, Edit } from "lucide-react";
+import { Plus, Users, ShoppingCart, Trash2, Edit, FileText } from "lucide-react";
 import backend from "~backend/client";
 import type { CreateCustomerRequest } from "~backend/sales/create_customer";
 import type { CreateSalesOrderRequest, OrderItem } from "~backend/sales/create_order";
@@ -187,6 +187,25 @@ export default function SalesPage() {
     },
   });
 
+  const generateInvoiceMutation = useMutation({
+    mutationFn: (salesOrderId: number) => backend.sales.generateInvoice({ salesOrderId }),
+    onSuccess: (response) => {
+      queryClient.invalidateQueries({ queryKey: ["sales-orders"] });
+      toast({
+        title: "Success",
+        description: `Invoice ${response.invoiceNumber} generated successfully`,
+      });
+    },
+    onError: (error) => {
+      console.error("Error generating invoice:", error);
+      toast({
+        title: "Error",
+        description: "Failed to generate invoice",
+        variant: "destructive",
+      });
+    },
+  });
+
   const resetCustomerForm = () => {
     setCustomerData({
       name: "",
@@ -265,6 +284,12 @@ export default function SalesPage() {
       id: order.id,
       status: status as "draft" | "confirmed" | "shipped" | "delivered" | "cancelled",
     });
+  };
+
+  const handleGenerateInvoice = (salesOrderId: number) => {
+    if (confirm("Are you sure you want to generate an invoice for this order?")) {
+      generateInvoiceMutation.mutate(salesOrderId);
+    }
   };
 
   const addItemToOrder = () => {
@@ -547,6 +572,17 @@ export default function SalesPage() {
                           <SelectItem value="cancelled">Cancelled</SelectItem>
                         </SelectContent>
                       </Select>
+                      {order.status === 'confirmed' && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleGenerateInvoice(order.id)}
+                          disabled={generateInvoiceMutation.isPending}
+                          title="Generate Invoice"
+                        >
+                          <FileText className="h-4 w-4" />
+                        </Button>
+                      )}
                       <Button
                         variant="outline"
                         size="sm"

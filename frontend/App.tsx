@@ -10,6 +10,7 @@ import InventoryPage from "./pages/InventoryPage";
 import SalesPage from "./pages/SalesPage";
 import PurchasingPage from "./pages/PurchasingPage";
 import AccountingPage from "./pages/AccountingPage";
+import ReportsPage from "./pages/ReportsPage";
 import UsersPage from "./pages/UsersPage";
 import ProfilePage from "./pages/ProfilePage";
 import SeedDataPage from "./pages/SeedDataPage";
@@ -51,6 +52,7 @@ export default function App() {
                   <Route path="/sales" element={<SalesPage />} />
                   <Route path="/purchasing" element={<PurchasingPage />} />
                   <Route path="/accounting" element={<AccountingPage />} />
+                  <Route path="/reports" element={<ReportsPage />} />
                   <Route path="/users" element={<UsersPage />} />
                   <Route path="/profile" element={<ProfilePage />} />
                   <Route path="/seed" element={<SeedDataPage />} />

@@ -65,7 +65,13 @@ INSERT INTO chart_of_accounts (account_code, account_name, account_type) VALUES
 ('6000', 'Operating Expenses', 'expense'),
 ('6100', 'Rent Expense', 'expense'),
 ('6200', 'Utilities Expense', 'expense'),
-('6300', 'Office Supplies Expense', 'expense');
+('6300', 'Office Supplies Expense', 'expense'),
+('7000', 'Other Revenue', 'revenue'),
+('7100', 'Interest Revenue', 'revenue'),
+('7200', 'Investment Revenue', 'revenue'),
+('8000', 'Other Expenses', 'expense'),
+('8100', 'Interest Expense', 'expense'),
+('8200', 'Loss on Assets', 'expense');
 
 CREATE INDEX idx_journal_entries_entry_date ON journal_entries(entry_date);
 CREATE INDEX idx_journal_entry_lines_account_id ON journal_entry_lines(account_id);
