@@ -37,7 +37,7 @@ const navigation = [
   { name: "Accounting", href: "/accounting", icon: Calculator },
   { name: "Reports", href: "/reports", icon: FileText },
   { name: "Users", href: "/users", icon: Users },
-  // { name: "Seed Data", href: "/seed", icon: Database },
+  { name: "Seed Data", href: "/seed", icon: Database },
 ];
 
 interface LayoutProps {

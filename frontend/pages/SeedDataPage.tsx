@@ -1,162 +1,291 @@
 import { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Separator } from "@/components/ui/separator";
+import { Database, CheckCircle, AlertCircle, Loader2 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
-import { Database, Users, Building2, Package, ShoppingCart, Truck, Calculator } from "lucide-react";
 import backend from "~backend/client";
 
 export default function SeedDataPage() {
-  const [loadingStates, setLoadingStates] = useState<Record<string, boolean>>({});
+  const [loading, setLoading] = useState<string | null>(null);
+  const [results, setResults] = useState<Record<string, boolean>>({});
   const { toast } = useToast();
 
-  const seedOperations = [
-    {
-      key: "users",
-      title: "Users",
-      description: "Create sample users with different roles",
-      icon: Users,
-      action: () => backend.auth.seedUsers(),
-    },
-    {
-      key: "companies",
-      title: "Companies",
-      description: "Create sample company data",
-      icon: Building2,
-      action: () => backend.company.seedCompanies(),
-    },
-    {
-      key: "inventory",
-      title: "Inventory",
-      description: "Create sample products and categories",
-      icon: Package,
-      action: () => backend.inventory.seedInventory(),
-    },
-    {
-      key: "sales",
-      title: "Sales",
-      description: "Create sample customers and sales orders",
-      icon: ShoppingCart,
-      action: () => backend.sales.seedSales(),
-    },
-    {
-      key: "purchasing",
-      title: "Purchasing",
-      description: "Create sample suppliers and purchase orders",
-      icon: Truck,
-      action: () => backend.purchasing.seedPurchasing(),
-    },
-    {
-      key: "accounting",
-      title: "Accounting",
-      description: "Create sample journal entries",
-      icon: Calculator,
-      action: () => backend.accounting.seedAccounting(),
-    },
-  ];
-
-  const handleSeed = async (operation: typeof seedOperations[0]) => {
-    setLoadingStates(prev => ({ ...prev, [operation.key]: true }));
-
+  const seedData = async (service: string, seedFunction: () => Promise<any>) => {
+    setLoading(service);
     try {
-      const result = await operation.action();
+      await seedFunction();
+      setResults(prev => ({ ...prev, [service]: true }));
       toast({
         title: "Success",
-        description: result.message,
+        description: `${service} data seeded successfully`,
       });
     } catch (error) {
-      console.error(`Error seeding ${operation.title}:`, error);
+      console.error(`Error seeding ${service}:`, error);
+      setResults(prev => ({ ...prev, [service]: false }));
       toast({
         title: "Error",
-        description: `Failed to seed ${operation.title.toLowerCase()}`,
+        description: `Failed to seed ${service} data`,
         variant: "destructive",
       });
     } finally {
-      setLoadingStates(prev => ({ ...prev, [operation.key]: false }));
+      setLoading(null);
     }
   };
 
-  const handleSeedAll = async () => {
-    for (const operation of seedOperations) {
-      await handleSeed(operation);
-      // Add a small delay between operations
-      await new Promise(resolve => setTimeout(resolve, 500));
+  const seedAll = async () => {
+    setResults({});
+    
+    // Seed in order of dependencies
+    await seedData("Users", () => backend.auth.seedUsers());
+    await seedData("Companies", () => backend.company.seedCompanies());
+    await seedData("Inventory Categories", () => backend.inventory.seedCategories());
+    await seedData("Inventory Products", () => backend.inventory.seedProducts());
+    await seedData("Sales Customers", () => backend.sales.seedCustomers());
+    await seedData("Purchasing Suppliers", () => backend.purchasing.seedSuppliers());
+    await seedData("Accounting Accounts", () => backend.accounting.seedAccounts());
+  };
+
+  const renderStatus = (service: string) => {
+    if (loading === service) {
+      return <Loader2 className="h-4 w-4 animate-spin text-blue-500" />;
     }
+    if (results[service] === true) {
+      return <CheckCircle className="h-4 w-4 text-green-500" />;
+    }
+    if (results[service] === false) {
+      return <AlertCircle className="h-4 w-4 text-red-500" />;
+    }
+    return null;
   };
 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold text-gray-900">Seed Data</h1>
-        <p className="text-gray-600">Generate sample data for testing and demonstration</p>
+        <h1 className="text-3xl font-bold text-gray-900">Seed Database</h1>
+        <p className="text-gray-600">Populate the database with sample data for testing</p>
       </div>
+
+      <Alert>
+        <Database className="h-4 w-4" />
+        <AlertDescription>
+          This will populate your database with sample data. Use this for testing purposes only.
+          <strong className="block mt-2">Warning: This may overwrite existing data in some cases!</strong>
+        </AlertDescription>
+      </Alert>
 
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center">
-            <Database className="mr-2 h-5 w-5" />
-            Database Seeding
-          </CardTitle>
+          <CardTitle>Seed All Data</CardTitle>
+          <CardDescription>
+            This will seed all services with sample data in the correct order
+          </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="space-y-4">
-            <div className="flex justify-between items-center p-4 bg-blue-50 rounded-lg">
-              <div>
-                <h3 className="font-medium">Seed All Data</h3>
-                <p className="text-sm text-gray-600">Generate all sample data at once</p>
+          <Button 
+            onClick={seedAll} 
+            disabled={loading !== null}
+            className="w-full mb-4"
+          >
+            {loading ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Seeding {loading}...
+              </>
+            ) : (
+              <>
+                <Database className="mr-2 h-4 w-4" />
+                Seed All Data
+              </>
+            )}
+          </Button>
+
+          <div className="space-y-2">
+            <h4 className="font-medium">Seeding Progress:</h4>
+            {[
+              "Users",
+              "Companies", 
+              "Inventory Categories",
+              "Inventory Products",
+              "Sales Customers",
+              "Purchasing Suppliers",
+              "Accounting Accounts"
+            ].map(service => (
+              <div key={service} className="flex items-center justify-between py-2 px-3 bg-gray-50 rounded">
+                <span className="text-sm">{service}</span>
+                {renderStatus(service)}
               </div>
-              <Button 
-                onClick={handleSeedAll}
-                disabled={Object.values(loadingStates).some(loading => loading)}
-              >
-                {Object.values(loadingStates).some(loading => loading) ? "Seeding..." : "Seed All"}
-              </Button>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {seedOperations.map((operation) => {
-                const Icon = operation.icon;
-                const isLoading = loadingStates[operation.key];
-
-                return (
-                  <Card key={operation.key} className="relative">
-                    <CardHeader>
-                      <CardTitle className="flex items-center text-lg">
-                        <Icon className="mr-2 h-5 w-5" />
-                        {operation.title}
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <p className="text-sm text-gray-600 mb-4">{operation.description}</p>
-                      <Button 
-                        onClick={() => handleSeed(operation)}
-                        disabled={isLoading}
-                        className="w-full"
-                      >
-                        {isLoading ? "Seeding..." : `Seed ${operation.title}`}
-                      </Button>
-                    </CardContent>
-                  </Card>
-                );
-              })}
-            </div>
+            ))}
           </div>
         </CardContent>
       </Card>
 
-      <Card className="bg-yellow-50 border-yellow-200">
-        <CardHeader>
-          <CardTitle className="text-yellow-800">Important Notes</CardTitle>
-        </CardHeader>
-        <CardContent className="text-yellow-700">
-          <ul className="list-disc list-inside space-y-1 text-sm">
-            <li>Seeding operations will create sample data in your database</li>
-            <li>Existing data with the same identifiers will be skipped</li>
-            <li>This is intended for development and testing purposes</li>
-            <li>Make sure to seed users first if you want to test with different user roles</li>
-            <li>Some operations depend on others (e.g., sales orders need customers and products)</li>
-          </ul>
-        </CardContent>
-      </Card>
+      <Separator />
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">Users</CardTitle>
+            <CardDescription>Create sample users for testing</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button 
+              onClick={() => seedData("Users", () => backend.auth.seedUsers())}
+              disabled={loading !== null}
+              variant="outline"
+              className="w-full"
+            >
+              {loading === "Users" ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Database className="mr-2 h-4 w-4" />
+              )}
+              Seed Users
+            </Button>
+            <div className="mt-2 text-xs text-gray-500">
+              Creates admin, manager, accountant, sales, purchasing, and regular users
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">Companies</CardTitle>
+            <CardDescription>Create sample company data</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button 
+              onClick={() => seedData("Companies", () => backend.company.seedCompanies())}
+              disabled={loading !== null}
+              variant="outline"
+              className="w-full"
+            >
+              {loading === "Companies" ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Database className="mr-2 h-4 w-4" />
+              )}
+              Seed Companies
+            </Button>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">Inventory</CardTitle>
+            <CardDescription>Create sample products and categories</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            <Button 
+              onClick={() => seedData("Categories", () => backend.inventory.seedCategories())}
+              disabled={loading !== null}
+              variant="outline"
+              className="w-full"
+            >
+              {loading === "Categories" ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Database className="mr-2 h-4 w-4" />
+              )}
+              Seed Categories
+            </Button>
+            <Button 
+              onClick={() => seedData("Products", () => backend.inventory.seedProducts())}
+              disabled={loading !== null}
+              variant="outline"
+              className="w-full"
+            >
+              {loading === "Products" ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Database className="mr-2 h-4 w-4" />
+              )}
+              Seed Products
+            </Button>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">Sales</CardTitle>
+            <CardDescription>Create sample customers</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button 
+              onClick={() => seedData("Customers", () => backend.sales.seedCustomers())}
+              disabled={loading !== null}
+              variant="outline"
+              className="w-full"
+            >
+              {loading === "Customers" ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Database className="mr-2 h-4 w-4" />
+              )}
+              Seed Customers
+            </Button>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">Purchasing</CardTitle>
+            <CardDescription>Create sample suppliers</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button 
+              onClick={() => seedData("Suppliers", () => backend.purchasing.seedSuppliers())}
+              disabled={loading !== null}
+              variant="outline"
+              className="w-full"
+            >
+              {loading === "Suppliers" ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Database className="mr-2 h-4 w-4" />
+              )}
+              Seed Suppliers
+            </Button>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">Accounting</CardTitle>
+            <CardDescription>Create sample accounts and transactions</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button 
+              onClick={() => seedData("Accounts", () => backend.accounting.seedAccounts())}
+              disabled={loading !== null}
+              variant="outline"
+              className="w-full"
+            >
+              {loading === "Accounts" ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Database className="mr-2 h-4 w-4" />
+              )}
+              Seed Accounts
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+
+      <Alert>
+        <AlertCircle className="h-4 w-4" />
+        <AlertDescription>
+          <strong>Login Credentials for Testing:</strong>
+          <div className="mt-2 space-y-1 text-sm">
+            <div>Admin: admin@company.com / admin123</div>
+            <div>Manager: manager@company.com / manager123</div>
+            <div>Accountant: accountant@company.com / accountant123</div>
+            <div>Sales: sales@company.com / sales123</div>
+            <div>Purchasing: purchasing@company.com / purchasing123</div>
+          </div>
+        </AlertDescription>
+      </Alert>
     </div>
   );
 }
