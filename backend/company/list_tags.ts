@@ -1,5 +1,5 @@
 import { api } from "encore.dev/api";
-import { db } from "./db";
+import { companyDB } from "./db";
 
 export interface Tag {
   id: number;
@@ -16,22 +16,13 @@ export interface ListTagsRequest {
 export const listTags = api(
   { method: "GET", path: "/companies/:companyId/tags", expose: true, auth: true },
   async ({ companyId }: ListTagsRequest): Promise<{ tags: Tag[] }> => {
-    const result = await db.query(
-      `SELECT id, company_id, name, color, created_at 
-       FROM tags 
-       WHERE company_id = $1 
-       ORDER BY name`,
-      [companyId]
-    );
+    const tags = await companyDB.queryAll<Tag>`
+      SELECT id, company_id as "companyId", name, color, created_at as "createdAt"
+      FROM tags 
+      WHERE company_id = ${companyId}
+      ORDER BY name
+    `;
 
-    return {
-      tags: result.rows.map((row) => ({
-        id: row.id,
-        companyId: row.company_id,
-        name: row.name,
-        color: row.color,
-        createdAt: row.created_at,
-      })),
-    };
+    return { tags };
   }
 );

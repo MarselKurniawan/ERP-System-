@@ -1,5 +1,5 @@
 import { api } from "encore.dev/api";
-import { db } from "./db";
+import { purchasingDB } from "./db";
 
 export interface PurchasePayment {
   id: number;
@@ -25,45 +25,81 @@ export interface ListPurchasePaymentsRequest {
 export const listPayments = api(
   { method: "GET", path: "/purchasing/payments", expose: true, auth: true },
   async (req: ListPurchasePaymentsRequest): Promise<{ payments: PurchasePayment[] }> => {
-    let query = `
-      SELECT p.id, p.company_id, p.supplier_id, s.name as supplier_name,
-             p.payment_date, p.amount, p.payment_method, p.reference_number,
-             p.notes, p.cash_bank_account_id, p.tags, p.created_at
-      FROM purchase_payments p
-      JOIN suppliers s ON s.id = p.supplier_id
-      WHERE p.company_id = $1
-    `;
-    const params: any[] = [req.companyId];
+    const payments: PurchasePayment[] = [];
 
-    if (req.supplierId) {
-      query += ` AND p.supplier_id = $${params.length + 1}`;
-      params.push(req.supplierId);
+    if (req.supplierId && req.search) {
+      const searchPattern = `%${req.search}%`;
+      for await (const row of purchasingDB.query<any>`
+        SELECT p.id, p.company_id, p.supplier_id, s.name as supplier_name,
+               p.payment_date, p.amount, p.payment_method, p.reference_number,
+               p.notes, p.cash_bank_account_id, p.tags, p.created_at
+        FROM purchase_payments p
+        JOIN suppliers s ON s.id = p.supplier_id
+        WHERE p.company_id = ${req.companyId}
+          AND p.supplier_id = ${req.supplierId}
+          AND (s.name ILIKE ${searchPattern} OR p.reference_number ILIKE ${searchPattern})
+        ORDER BY p.payment_date DESC, p.id DESC
+      `) {
+        payments.push(mapPayment(row));
+      }
+    } else if (req.supplierId) {
+      for await (const row of purchasingDB.query<any>`
+        SELECT p.id, p.company_id, p.supplier_id, s.name as supplier_name,
+               p.payment_date, p.amount, p.payment_method, p.reference_number,
+               p.notes, p.cash_bank_account_id, p.tags, p.created_at
+        FROM purchase_payments p
+        JOIN suppliers s ON s.id = p.supplier_id
+        WHERE p.company_id = ${req.companyId}
+          AND p.supplier_id = ${req.supplierId}
+        ORDER BY p.payment_date DESC, p.id DESC
+      `) {
+        payments.push(mapPayment(row));
+      }
+    } else if (req.search) {
+      const searchPattern = `%${req.search}%`;
+      for await (const row of purchasingDB.query<any>`
+        SELECT p.id, p.company_id, p.supplier_id, s.name as supplier_name,
+               p.payment_date, p.amount, p.payment_method, p.reference_number,
+               p.notes, p.cash_bank_account_id, p.tags, p.created_at
+        FROM purchase_payments p
+        JOIN suppliers s ON s.id = p.supplier_id
+        WHERE p.company_id = ${req.companyId}
+          AND (s.name ILIKE ${searchPattern} OR p.reference_number ILIKE ${searchPattern})
+        ORDER BY p.payment_date DESC, p.id DESC
+      `) {
+        payments.push(mapPayment(row));
+      }
+    } else {
+      for await (const row of purchasingDB.query<any>`
+        SELECT p.id, p.company_id, p.supplier_id, s.name as supplier_name,
+               p.payment_date, p.amount, p.payment_method, p.reference_number,
+               p.notes, p.cash_bank_account_id, p.tags, p.created_at
+        FROM purchase_payments p
+        JOIN suppliers s ON s.id = p.supplier_id
+        WHERE p.company_id = ${req.companyId}
+        ORDER BY p.payment_date DESC, p.id DESC
+      `) {
+        payments.push(mapPayment(row));
+      }
     }
 
-    if (req.search) {
-      query += ` AND (s.name ILIKE $${params.length + 1} OR p.reference_number ILIKE $${params.length + 1})`;
-      params.push(`%${req.search}%`);
-    }
-
-    query += ` ORDER BY p.payment_date DESC, p.id DESC`;
-
-    const result = await db.query(query, params);
-
-    return {
-      payments: result.rows.map((row) => ({
-        id: row.id,
-        companyId: row.company_id,
-        supplierId: row.supplier_id,
-        supplierName: row.supplier_name,
-        paymentDate: row.payment_date,
-        amount: parseFloat(row.amount),
-        paymentMethod: row.payment_method,
-        referenceNumber: row.reference_number,
-        notes: row.notes,
-        cashBankAccountId: row.cash_bank_account_id,
-        tags: row.tags,
-        createdAt: row.created_at,
-      })),
-    };
+    return { payments };
   }
 );
+
+function mapPayment(row: any): PurchasePayment {
+  return {
+    id: row.id,
+    companyId: row.company_id,
+    supplierId: row.supplier_id,
+    supplierName: row.supplier_name,
+    paymentDate: row.payment_date,
+    amount: parseFloat(row.amount),
+    paymentMethod: row.payment_method,
+    referenceNumber: row.reference_number,
+    notes: row.notes,
+    cashBankAccountId: row.cash_bank_account_id,
+    tags: row.tags,
+    createdAt: row.created_at,
+  };
+}
