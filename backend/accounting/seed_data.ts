@@ -5,8 +5,10 @@ import { accountingDB } from "./db";
 export const seedAccounting = api<void, { message: string }>(
   { expose: true, method: "POST", path: "/accounting/seed" },
   async () => {
-    // Create sample journal entries
-    const journalEntries = [
+    const companyIds = [1, 2, 3];
+
+    for (const companyId of companyIds) {
+      const journalEntries = [
       {
         entryDate: new Date('2024-01-01'),
         description: 'Opening balance entry',
@@ -56,40 +58,40 @@ export const seedAccounting = api<void, { message: string }>(
           { accountCode: '1000', description: 'Cash payment for utilities', debitAmount: 0, creditAmount: 3500000 }
         ]
       }
-    ];
+      ];
 
-    // Get account IDs by account codes
-    const accounts = await accountingDB.queryAll<{ id: number; accountCode: string }>`
-      SELECT id, account_code as "accountCode" FROM chart_of_accounts
-    `;
-    
-    const accountMap = new Map(accounts.map(acc => [acc.accountCode, acc.id]));
-
-    for (const entry of journalEntries) {
-      const entryNumber = `JE-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-      
-      let totalDebit = 0;
-      let totalCredit = 0;
-      
-      for (const line of entry.lines) {
-        totalDebit += line.debitAmount || 0;
-        totalCredit += line.creditAmount || 0;
-      }
-
-      const newEntry = await accountingDB.queryRow<{ id: number }>`
-        INSERT INTO journal_entries (entry_number, entry_date, reference_type, description, total_debit, total_credit, status)
-        VALUES (${entryNumber}, ${entry.entryDate}, ${entry.referenceType}, ${entry.description}, ${totalDebit}, ${totalCredit}, 'posted')
-        RETURNING id
+      const accounts = await accountingDB.queryAll<{ id: number; accountCode: string }>`
+        SELECT id, account_code as "accountCode" FROM chart_of_accounts WHERE company_id = ${companyId}
       `;
+      
+      const accountMap = new Map(accounts.map(acc => [acc.accountCode, acc.id]));
 
-      if (newEntry) {
+      for (const entry of journalEntries) {
+        const entryNumber = `JE-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+        
+        let totalDebit = 0;
+        let totalCredit = 0;
+        
         for (const line of entry.lines) {
-          const accountId = accountMap.get(line.accountCode);
-          if (accountId) {
-            await accountingDB.exec`
-              INSERT INTO journal_entry_lines (journal_entry_id, account_id, description, debit_amount, credit_amount)
-              VALUES (${newEntry.id}, ${accountId}, ${line.description}, ${line.debitAmount || 0}, ${line.creditAmount || 0})
-            `;
+          totalDebit += line.debitAmount || 0;
+          totalCredit += line.creditAmount || 0;
+        }
+
+        const newEntry = await accountingDB.queryRow<{ id: number }>`
+          INSERT INTO journal_entries (entry_number, entry_date, reference_type, description, company_id, total_debit, total_credit, status)
+          VALUES (${entryNumber}, ${entry.entryDate}, ${entry.referenceType}, ${entry.description}, ${companyId}, ${totalDebit}, ${totalCredit}, 'posted')
+          RETURNING id
+        `;
+
+        if (newEntry) {
+          for (const line of entry.lines) {
+            const accountId = accountMap.get(line.accountCode);
+            if (accountId) {
+              await accountingDB.exec`
+                INSERT INTO journal_entry_lines (journal_entry_id, account_id, description, debit_amount, credit_amount)
+                VALUES (${newEntry.id}, ${accountId}, ${line.description}, ${line.debitAmount || 0}, ${line.creditAmount || 0})
+              `;
+            }
           }
         }
       }
