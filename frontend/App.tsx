@@ -16,9 +16,28 @@ import SeedDataPage from "./pages/SeedDataPage";
 
 const queryClient = new QueryClient();
 
+const GlobalStyles = () => (
+  <style>
+    {`
+      @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&display=swap');
+      
+      body {
+        font-family: 'DM Sans', sans-serif !important;
+        font-weight: 400 !important;
+      }
+
+      /* Apply to headings as well to ensure consistency */
+      h1, h2, h3, h4, h5, h6 {
+        font-family: 'DM Sans', sans-serif !important;
+      }
+    `}
+  </style>
+);
+
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
+      <GlobalStyles />
       <AuthProvider>
         <Router>
           <Routes>
