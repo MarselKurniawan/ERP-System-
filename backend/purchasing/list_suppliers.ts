@@ -20,10 +20,25 @@ export interface ListSuppliersResponse {
 }
 
 // Retrieves all active suppliers.
-export const listSuppliers = api<void, ListSuppliersResponse>(
+export interface ListSuppliersRequest {
+  companyId?: number;
+}
+
+export const listSuppliers = api<ListSuppliersRequest, ListSuppliersResponse>(
   { expose: true, method: "GET", path: "/suppliers", auth: true },
-  async () => {
+  async (req) => {
     requireAuth();
+    
+    if (req.companyId) {
+      const suppliers = await purchasingDB.queryAll<Supplier>`
+        SELECT id, name, email, phone, address, tax_id as "taxId", payment_terms as "paymentTerms", is_active as "isActive", created_at as "createdAt", updated_at as "updatedAt"
+        FROM suppliers
+        WHERE is_active = TRUE AND company_id = ${req.companyId}
+        ORDER BY name
+      `;
+      return { suppliers };
+    }
+    
     const suppliers = await purchasingDB.queryAll<Supplier>`
       SELECT id, name, email, phone, address, tax_id as "taxId", payment_terms as "paymentTerms", is_active as "isActive", created_at as "createdAt", updated_at as "updatedAt"
       FROM suppliers

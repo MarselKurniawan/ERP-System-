@@ -8,12 +8,12 @@ export default function Dashboard() {
 
   const { data: products } = useQuery({
     queryKey: ["products"],
-    queryFn: () => backend.inventory.listProducts(),
+    queryFn: () => backend.inventory.listProducts({}),
   });
 
   const { data: salesOrders } = useQuery({
     queryKey: ["sales-orders"],
-    queryFn: () => backend.sales.listOrders(),
+    queryFn: () => backend.sales.listOrders({}),
   });
 
   const { data: purchaseOrders } = useQuery({

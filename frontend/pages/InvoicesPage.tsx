@@ -25,7 +25,7 @@ export default function InvoicesPage() {
 
   const { data: invoices, isLoading } = useQuery({
     queryKey: ["invoices"],
-    queryFn: () => backend.sales.listInvoices(),
+    queryFn: () => backend.sales.listInvoices({}),
   });
 
   const updateInvoiceMutation = useMutation({

@@ -28,10 +28,35 @@ export interface ListProductsResponse {
 }
 
 // Retrieves all products with category information.
-export const listProducts = api<void, ListProductsResponse>(
+export interface ListProductsRequest {
+  companyId?: number;
+}
+
+export const listProducts = api<ListProductsRequest, ListProductsResponse>(
   { expose: true, method: "GET", path: "/products", auth: true },
-  async () => {
+  async (req) => {
     requireAuth();
+    
+    if (req.companyId) {
+      const products = await inventoryDB.queryAll<Product>`
+        SELECT 
+          p.id, p.sku, p.name, p.description, 
+          p.category_id as "categoryId", c.name as "categoryName",
+          p.product_type as "productType",
+          p.unit_price as "unitPrice", p.cost_price as "costPrice",
+          p.revenue_account_id as "revenueAccountId",
+          p.cogs_account_id as "cogsAccountId",
+          p.stock_quantity as "stockQuantity", p.min_stock_level as "minStockLevel",
+          p.max_stock_level as "maxStockLevel", p.unit, p.is_active as "isActive",
+          p.created_at as "createdAt", p.updated_at as "updatedAt"
+        FROM products p
+        LEFT JOIN categories c ON p.category_id = c.id
+        WHERE p.is_active = TRUE AND p.company_id = ${req.companyId}
+        ORDER BY p.name
+      `;
+      return { products };
+    }
+    
     const products = await inventoryDB.queryAll<Product>`
       SELECT 
         p.id, p.sku, p.name, p.description, 

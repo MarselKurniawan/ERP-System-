@@ -20,10 +20,25 @@ export interface ListCustomersResponse {
 }
 
 // Retrieves all active customers.
-export const listCustomers = api<void, ListCustomersResponse>(
+export interface ListCustomersRequest {
+  companyId?: number;
+}
+
+export const listCustomers = api<ListCustomersRequest, ListCustomersResponse>(
   { expose: true, method: "GET", path: "/customers", auth: true },
-  async () => {
+  async (req) => {
     requireAuth();
+    
+    if (req.companyId) {
+      const customers = await salesDB.queryAll<Customer>`
+        SELECT id, name, email, phone, address, tax_id as "taxId", credit_limit as "creditLimit", is_active as "isActive", created_at as "createdAt", updated_at as "updatedAt"
+        FROM customers
+        WHERE is_active = TRUE AND company_id = ${req.companyId}
+        ORDER BY name
+      `;
+      return { customers };
+    }
+    
     const customers = await salesDB.queryAll<Customer>`
       SELECT id, name, email, phone, address, tax_id as "taxId", credit_limit as "creditLimit", is_active as "isActive", created_at as "createdAt", updated_at as "updatedAt"
       FROM customers

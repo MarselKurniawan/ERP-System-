@@ -2,11 +2,12 @@ import { api } from "encore.dev/api";
 import { accountingDB } from "./db";
 import { requireAuth } from "../auth/permissions";
 
-export interface Account {
+export interface ChartOfAccount {
   id: number;
   accountCode: string;
-  accountName: string;
+  name: string;
   accountType: string;
+  description?: string;
   parentAccountId?: number;
   isActive: boolean;
   createdAt: Date;
@@ -14,16 +15,30 @@ export interface Account {
 }
 
 export interface ListAccountsResponse {
-  accounts: Account[];
+  accounts: ChartOfAccount[];
 }
 
-// Retrieves all active accounts from the chart of accounts.
-export const listAccounts = api<void, ListAccountsResponse>(
+export interface ListAccountsRequest {
+  companyId?: number;
+}
+
+export const listAccounts = api<ListAccountsRequest, ListAccountsResponse>(
   { expose: true, method: "GET", path: "/accounts", auth: true },
-  async () => {
+  async (req) => {
     requireAuth();
-    const accounts = await accountingDB.queryAll<Account>`
-      SELECT id, account_code as "accountCode", account_name as "accountName", account_type as "accountType", parent_account_id as "parentAccountId", is_active as "isActive", created_at as "createdAt", updated_at as "updatedAt"
+    
+    if (req.companyId) {
+      const accounts = await accountingDB.queryAll<ChartOfAccount>`
+        SELECT id, account_code as "accountCode", name, account_type as "accountType", description, parent_account_id as "parentAccountId", is_active as "isActive", created_at as "createdAt", updated_at as "updatedAt"
+        FROM chart_of_accounts
+        WHERE is_active = TRUE AND company_id = ${req.companyId}
+        ORDER BY account_code
+      `;
+      return { accounts };
+    }
+    
+    const accounts = await accountingDB.queryAll<ChartOfAccount>`
+      SELECT id, account_code as "accountCode", name, account_type as "accountType", description, parent_account_id as "parentAccountId", is_active as "isActive", created_at as "createdAt", updated_at as "updatedAt"
       FROM chart_of_accounts
       WHERE is_active = TRUE
       ORDER BY account_code

@@ -45,7 +45,7 @@ export default function AccountingPage() {
 
   const { data: accounts } = useQuery({
     queryKey: ["accounts"],
-    queryFn: () => backend.accounting.listAccounts(),
+    queryFn: () => backend.accounting.listAccounts({}),
   });
 
   const { data: journalEntries } = useQuery({
@@ -184,7 +184,7 @@ export default function AccountingPage() {
 
   const getAccountName = (accountId: number) => {
     const account = accounts?.accounts.find(a => a.id === accountId);
-    return account ? `${account.accountCode} - ${account.accountName}` : "Unknown Account";
+    return account ? `${account.accountCode} - ${account.name}` : "Unknown Account";
   };
 
   const getAccountTypeBadge = (type: string) => {
@@ -279,7 +279,7 @@ export default function AccountingPage() {
                         <SelectContent>
                           {accounts?.accounts.map((account) => (
                             <SelectItem key={account.id} value={account.id.toString()}>
-                              {account.accountCode} - {account.accountName}
+                              {account.accountCode} - {account.name}
                             </SelectItem>
                           ))}
                         </SelectContent>
@@ -307,7 +307,7 @@ export default function AccountingPage() {
                     <div>
                       <CardTitle className="flex items-center">
                         <Calculator className="mr-2 h-5 w-5" />
-                        {account.accountCode} - {account.accountName}
+                        {account.accountCode} - {account.name}
                       </CardTitle>
                     </div>
                     {getAccountTypeBadge(account.accountType)}
@@ -381,7 +381,7 @@ export default function AccountingPage() {
                           <SelectContent>
                             {accounts?.accounts.map((account) => (
                               <SelectItem key={account.id} value={account.id.toString()}>
-                                {account.accountCode} - {account.accountName}
+                                {account.accountCode} - {account.name}
                               </SelectItem>
                             ))}
                           </SelectContent>

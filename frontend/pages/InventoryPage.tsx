@@ -58,12 +58,12 @@ export default function InventoryPage() {
 
   const { data: products } = useQuery({
     queryKey: ["products"],
-    queryFn: () => backend.inventory.listProducts(),
+    queryFn: () => backend.inventory.listProducts({}),
   });
 
   const { data: accounts } = useQuery({
     queryKey: ["accounts"],
-    queryFn: () => backend.accounting.listAccounts(),
+    queryFn: () => backend.accounting.listAccounts({}),
   });
 
   const createCategoryMutation = useMutation({
@@ -423,7 +423,7 @@ export default function InventoryPage() {
                             .filter(acc => acc.accountCode.startsWith('4'))
                             .map((account) => (
                             <SelectItem key={account.id} value={account.id.toString()}>
-                              {account.accountCode} - {account.accountName}
+                              {account.accountCode} - {account.name}
                             </SelectItem>
                           ))}
                         </SelectContent>
@@ -446,7 +446,7 @@ export default function InventoryPage() {
                             .filter(acc => acc.accountCode.startsWith('5'))
                             .map((account) => (
                             <SelectItem key={account.id} value={account.id.toString()}>
-                              {account.accountCode} - {account.accountName}
+                              {account.accountCode} - {account.name}
                             </SelectItem>
                           ))}
                         </SelectContent>

@@ -24,10 +24,30 @@ export interface ListSalesOrdersResponse {
 }
 
 // Retrieves all sales orders with customer information.
-export const listOrders = api<void, ListSalesOrdersResponse>(
+export interface ListSalesOrdersRequest {
+  companyId?: number;
+}
+
+export const listOrders = api<ListSalesOrdersRequest, ListSalesOrdersResponse>(
   { expose: true, method: "GET", path: "/sales-orders", auth: true },
-  async () => {
+  async (req) => {
     requireAuth();
+    
+    if (req.companyId) {
+      const orders = await salesDB.queryAll<SalesOrder>`
+        SELECT 
+          so.id, so.order_number as "orderNumber", so.customer_id as "customerId", c.name as "customerName",
+          so.order_date as "orderDate", so.due_date as "dueDate", so.status,
+          so.subtotal, so.tax_amount as "taxAmount", so.discount_amount as "discountAmount", so.total_amount as "totalAmount",
+          so.notes, so.created_at as "createdAt", so.updated_at as "updatedAt"
+        FROM sales_orders so
+        JOIN customers c ON so.customer_id = c.id
+        WHERE so.company_id = ${req.companyId}
+        ORDER BY so.created_at DESC
+      `;
+      return { orders };
+    }
+    
     const orders = await salesDB.queryAll<SalesOrder>`
       SELECT 
         so.id, so.order_number as "orderNumber", so.customer_id as "customerId", c.name as "customerName",

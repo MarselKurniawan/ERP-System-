@@ -31,10 +31,9 @@ export default function CustomersTab() {
     queryKey: ['customers', selectedCompany?.id, search],
     queryFn: async () => {
       if (!selectedCompany) return [];
-      const response = await backend.sales.listCustomers();
+      const response = await backend.sales.listCustomers({ companyId: selectedCompany.id });
       return response.customers.filter((c: any) => 
-        c.companyId === selectedCompany.id &&
-        (search === '' || c.name.toLowerCase().includes(search.toLowerCase()))
+        search === '' || c.name.toLowerCase().includes(search.toLowerCase())
       );
     },
     enabled: !!selectedCompany,
