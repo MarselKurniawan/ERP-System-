@@ -1,0 +1,20 @@
+CREATE TABLE companies (
+  id BIGSERIAL PRIMARY KEY,
+  name TEXT NOT NULL,
+  address TEXT,
+  phone TEXT,
+  email TEXT,
+  tax_id TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE TABLE company_settings (
+  id BIGSERIAL PRIMARY KEY,
+  company_id BIGINT NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
+  currency TEXT NOT NULL DEFAULT 'USD',
+  fiscal_year_start INTEGER NOT NULL DEFAULT 1,
+  decimal_places INTEGER NOT NULL DEFAULT 2,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
