@@ -18,9 +18,9 @@ CREATE TABLE user_sessions (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- Insert default admin user (password: admin123)
+-- Insert default admin user (password: admin123) - using simple hash format
 INSERT INTO users (email, password_hash, first_name, last_name, role) VALUES
-('admin@company.com', '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'Admin', 'User', 'admin');
+('admin@company.com', 'hashed_admin123', 'Admin', 'User', 'admin');
 
 CREATE INDEX idx_users_email ON users(email);
 CREATE INDEX idx_user_sessions_token ON user_sessions(session_token);
