@@ -1,5 +1,5 @@
-ALTER TABLE chart_of_accounts ADD COLUMN company_id INTEGER REFERENCES companies(id) ON DELETE CASCADE;
-ALTER TABLE journal_entries ADD COLUMN company_id INTEGER REFERENCES companies(id) ON DELETE CASCADE;
+ALTER TABLE chart_of_accounts ADD COLUMN company_id INTEGER;
+ALTER TABLE journal_entries ADD COLUMN company_id INTEGER;
 
 ALTER TABLE journal_entries ADD COLUMN tags TEXT[] DEFAULT '{}';
 
