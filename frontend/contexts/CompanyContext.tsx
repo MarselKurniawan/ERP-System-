@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import backend from '~backend/client';
+import { useAuth } from './AuthContext';
 
 interface Company {
   id: number;
@@ -19,6 +19,7 @@ interface CompanyContextType {
 const CompanyContext = createContext<CompanyContextType | undefined>(undefined);
 
 export function CompanyProvider({ children }: { children: React.ReactNode }) {
+  const { backend, user, isLoading: authLoading } = useAuth();
   const [selectedCompany, setSelectedCompany] = useState<Company | null>(() => {
     const stored = localStorage.getItem('selectedCompany');
     return stored ? JSON.parse(stored) : null;
@@ -27,6 +28,11 @@ export function CompanyProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   const refreshCompanies = async () => {
+    if (!user || authLoading) {
+      setLoading(false);
+      return;
+    }
+
     try {
       setLoading(true);
       const response = await backend.auth.listUserCompanies();
@@ -45,8 +51,12 @@ export function CompanyProvider({ children }: { children: React.ReactNode }) {
   };
 
   useEffect(() => {
-    refreshCompanies();
-  }, []);
+    if (user && !authLoading) {
+      refreshCompanies();
+    } else {
+      setLoading(false);
+    }
+  }, [user, authLoading]);
 
   useEffect(() => {
     if (selectedCompany) {

@@ -44,9 +44,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const updateBackendWithToken = (tokenValue: string) => {
     const newBackend = new Client(import.meta.env.VITE_CLIENT_TARGET, {
       requestInit: { credentials: "include" },
-      auth: () => ({
-        authorization: `Bearer ${tokenValue}`
-      })
+      auth: () => `Bearer ${tokenValue}`
     });
     setBackend(newBackend);
   };
@@ -54,13 +52,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const verifyToken = async (tokenToVerify: string) => {
     try {
       const tempBackend = new Client(import.meta.env.VITE_CLIENT_TARGET, {
-        requestInit: { credentials: "include" }
+        requestInit: { credentials: "include" },
+        auth: () => `Bearer ${tokenToVerify}`
       });
       const response = await tempBackend.auth.verifyToken({ token: tokenToVerify });
-      setUser(response.user);
+      
       setToken(tokenToVerify);
       localStorage.setItem("auth_token", tokenToVerify);
       updateBackendWithToken(tokenToVerify);
+      
+      setUser(response.user);
     } catch (error) {
       console.error("Token verification failed:", error);
       localStorage.removeItem("auth_token");
@@ -77,10 +78,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         requestInit: { credentials: "include" }
       });
       const response = await tempBackend.auth.login({ email, password });
-      setUser(response.user);
+      
       setToken(response.token);
       localStorage.setItem("auth_token", response.token);
       updateBackendWithToken(response.token);
+      
+      setUser(response.user);
     } catch (error) {
       throw error;
     }

@@ -76,14 +76,9 @@ export const seedUsers = api<void, { message: string }>(
       }
 
       if (user.companies === "all") {
-        const companies = [];
-        for await (const row of authDB.query<{ id: number }>`
-          SELECT id FROM companies
-        `) {
-          companies.push(row.id);
-        }
+        const companyIds = [1, 2, 3];
 
-        for (const companyId of companies) {
+        for (const companyId of companyIds) {
           const existingAssignment = await authDB.queryRow`
             SELECT id FROM user_companies WHERE user_id = ${userId} AND company_id = ${companyId}
           `;
