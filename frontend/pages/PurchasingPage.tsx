@@ -9,14 +9,17 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/components/ui/use-toast";
-import { Plus, Truck, Building, Trash2 } from "lucide-react";
+import { Plus, Truck, Building, Trash2, Edit } from "lucide-react";
 import backend from "~backend/client";
 import type { CreateSupplierRequest } from "~backend/purchasing/create_supplier";
 import type { CreatePurchaseOrderRequest, PurchaseOrderItem } from "~backend/purchasing/create_purchase_order";
+import type { UpdateSupplierRequest } from "~backend/purchasing/update_supplier";
+import type { UpdatePurchaseOrderRequest } from "~backend/purchasing/update_purchase_order";
 
 export default function PurchasingPage() {
   const [showSupplierForm, setShowSupplierForm] = useState(false);
   const [showOrderForm, setShowOrderForm] = useState(false);
+  const [editingSupplier, setEditingSupplier] = useState<any>(null);
   const [supplierData, setSupplierData] = useState<CreateSupplierRequest>({
     name: "",
     email: "",
@@ -66,14 +69,7 @@ export default function PurchasingPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["suppliers"] });
       setShowSupplierForm(false);
-      setSupplierData({
-        name: "",
-        email: "",
-        phone: "",
-        address: "",
-        taxId: "",
-        paymentTerms: "",
-      });
+      resetSupplierForm();
       toast({
         title: "Success",
         description: "Supplier created successfully",
@@ -89,20 +85,53 @@ export default function PurchasingPage() {
     },
   });
 
+  const updateSupplierMutation = useMutation({
+    mutationFn: (data: UpdateSupplierRequest) => backend.purchasing.updateSupplier(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["suppliers"] });
+      setEditingSupplier(null);
+      setShowSupplierForm(false);
+      resetSupplierForm();
+      toast({
+        title: "Success",
+        description: "Supplier updated successfully",
+      });
+    },
+    onError: (error) => {
+      console.error("Error updating supplier:", error);
+      toast({
+        title: "Error",
+        description: "Failed to update supplier",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const deleteSupplierMutation = useMutation({
+    mutationFn: (id: number) => backend.purchasing.deleteSupplier({ id }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["suppliers"] });
+      toast({
+        title: "Success",
+        description: "Supplier deleted successfully",
+      });
+    },
+    onError: (error) => {
+      console.error("Error deleting supplier:", error);
+      toast({
+        title: "Error",
+        description: "Failed to delete supplier",
+        variant: "destructive",
+      });
+    },
+  });
+
   const createOrderMutation = useMutation({
     mutationFn: (data: CreatePurchaseOrderRequest) => backend.purchasing.createPurchaseOrder(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["purchase-orders"] });
       setShowOrderForm(false);
-      setOrderData({
-        supplierId: 0,
-        orderDate: new Date(),
-        expectedDate: undefined,
-        items: [],
-        taxRate: 0,
-        discountAmount: 0,
-        notes: "",
-      });
+      resetOrderForm();
       toast({
         title: "Success",
         description: "Purchase order created successfully",
@@ -118,9 +147,77 @@ export default function PurchasingPage() {
     },
   });
 
+  const updateOrderMutation = useMutation({
+    mutationFn: (data: UpdatePurchaseOrderRequest) => backend.purchasing.updatePurchaseOrder(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["purchase-orders"] });
+      toast({
+        title: "Success",
+        description: "Purchase order updated successfully",
+      });
+    },
+    onError: (error) => {
+      console.error("Error updating purchase order:", error);
+      toast({
+        title: "Error",
+        description: "Failed to update purchase order",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const deleteOrderMutation = useMutation({
+    mutationFn: (id: number) => backend.purchasing.deletePurchaseOrder({ id }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["purchase-orders"] });
+      toast({
+        title: "Success",
+        description: "Purchase order deleted successfully",
+      });
+    },
+    onError: (error) => {
+      console.error("Error deleting purchase order:", error);
+      toast({
+        title: "Error",
+        description: "Failed to delete purchase order",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const resetSupplierForm = () => {
+    setSupplierData({
+      name: "",
+      email: "",
+      phone: "",
+      address: "",
+      taxId: "",
+      paymentTerms: "",
+    });
+  };
+
+  const resetOrderForm = () => {
+    setOrderData({
+      supplierId: 0,
+      orderDate: new Date(),
+      expectedDate: undefined,
+      items: [],
+      taxRate: 0,
+      discountAmount: 0,
+      notes: "",
+    });
+  };
+
   const handleSupplierSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    createSupplierMutation.mutate(supplierData);
+    if (editingSupplier) {
+      updateSupplierMutation.mutate({
+        id: editingSupplier.id,
+        ...supplierData,
+      });
+    } else {
+      createSupplierMutation.mutate(supplierData);
+    }
   };
 
   const handleOrderSubmit = (e: React.FormEvent) => {
@@ -134,6 +231,38 @@ export default function PurchasingPage() {
       return;
     }
     createOrderMutation.mutate(orderData);
+  };
+
+  const handleEditSupplier = (supplier: any) => {
+    setEditingSupplier(supplier);
+    setSupplierData({
+      name: supplier.name,
+      email: supplier.email || "",
+      phone: supplier.phone || "",
+      address: supplier.address || "",
+      taxId: supplier.taxId || "",
+      paymentTerms: supplier.paymentTerms || "",
+    });
+    setShowSupplierForm(true);
+  };
+
+  const handleDeleteSupplier = (id: number) => {
+    if (confirm("Are you sure you want to delete this supplier?")) {
+      deleteSupplierMutation.mutate(id);
+    }
+  };
+
+  const handleDeleteOrder = (id: number) => {
+    if (confirm("Are you sure you want to delete this purchase order?")) {
+      deleteOrderMutation.mutate(id);
+    }
+  };
+
+  const handleUpdateOrderStatus = (order: any, status: string) => {
+    updateOrderMutation.mutate({
+      id: order.id,
+      status: status as "draft" | "sent" | "confirmed" | "received" | "cancelled",
+    });
   };
 
   const addItemToOrder = () => {
@@ -208,7 +337,7 @@ export default function PurchasingPage() {
         <TabsContent value="orders" className="space-y-4">
           <div className="flex justify-between items-center">
             <h2 className="text-xl font-semibold">Purchase Orders</h2>
-            <Button onClick={() => setShowOrderForm(true)}>
+            <Button onClick={() => { setShowOrderForm(true); resetOrderForm(); }}>
               <Plus className="mr-2 h-4 w-4" />
               Create Order
             </Button>
@@ -399,7 +528,32 @@ export default function PurchasingPage() {
                       </CardTitle>
                       <p className="text-sm text-gray-600">Supplier: {order.supplierName}</p>
                     </div>
-                    {getStatusBadge(order.status)}
+                    <div className="flex items-center space-x-2">
+                      {getStatusBadge(order.status)}
+                      <Select
+                        value={order.status}
+                        onValueChange={(value) => handleUpdateOrderStatus(order, value)}
+                      >
+                        <SelectTrigger className="w-32">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="draft">Draft</SelectItem>
+                          <SelectItem value="sent">Sent</SelectItem>
+                          <SelectItem value="confirmed">Confirmed</SelectItem>
+                          <SelectItem value="received">Received</SelectItem>
+                          <SelectItem value="cancelled">Cancelled</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleDeleteOrder(order.id)}
+                        disabled={deleteOrderMutation.isPending}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </div>
                 </CardHeader>
                 <CardContent>
@@ -432,7 +586,7 @@ export default function PurchasingPage() {
         <TabsContent value="suppliers" className="space-y-4">
           <div className="flex justify-between items-center">
             <h2 className="text-xl font-semibold">Suppliers</h2>
-            <Button onClick={() => setShowSupplierForm(true)}>
+            <Button onClick={() => { setShowSupplierForm(true); setEditingSupplier(null); resetSupplierForm(); }}>
               <Plus className="mr-2 h-4 w-4" />
               Add Supplier
             </Button>
@@ -441,7 +595,7 @@ export default function PurchasingPage() {
           {showSupplierForm && (
             <Card>
               <CardHeader>
-                <CardTitle>Create New Supplier</CardTitle>
+                <CardTitle>{editingSupplier ? "Edit Supplier" : "Create New Supplier"}</CardTitle>
               </CardHeader>
               <CardContent>
                 <form onSubmit={handleSupplierSubmit} className="space-y-4">
@@ -499,10 +653,10 @@ export default function PurchasingPage() {
                     />
                   </div>
                   <div className="flex space-x-2">
-                    <Button type="submit" disabled={createSupplierMutation.isPending}>
-                      {createSupplierMutation.isPending ? "Creating..." : "Create Supplier"}
+                    <Button type="submit" disabled={createSupplierMutation.isPending || updateSupplierMutation.isPending}>
+                      {(createSupplierMutation.isPending || updateSupplierMutation.isPending) ? "Saving..." : (editingSupplier ? "Update Supplier" : "Create Supplier")}
                     </Button>
-                    <Button type="button" variant="outline" onClick={() => setShowSupplierForm(false)}>
+                    <Button type="button" variant="outline" onClick={() => { setShowSupplierForm(false); setEditingSupplier(null); }}>
                       Cancel
                     </Button>
                   </div>
@@ -515,10 +669,29 @@ export default function PurchasingPage() {
             {suppliers?.suppliers.map((supplier) => (
               <Card key={supplier.id}>
                 <CardHeader>
-                  <CardTitle className="flex items-center">
-                    <Building className="mr-2 h-5 w-5" />
-                    {supplier.name}
-                  </CardTitle>
+                  <div className="flex justify-between items-start">
+                    <CardTitle className="flex items-center">
+                      <Building className="mr-2 h-5 w-5" />
+                      {supplier.name}
+                    </CardTitle>
+                    <div className="flex space-x-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleEditSupplier(supplier)}
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleDeleteSupplier(supplier.id)}
+                        disabled={deleteSupplierMutation.isPending}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
                 </CardHeader>
                 <CardContent className="space-y-2">
                   {supplier.email && (

@@ -8,6 +8,7 @@ import InventoryPage from "./pages/InventoryPage";
 import SalesPage from "./pages/SalesPage";
 import PurchasingPage from "./pages/PurchasingPage";
 import AccountingPage from "./pages/AccountingPage";
+import UsersPage from "./pages/UsersPage";
 
 const queryClient = new QueryClient();
 
@@ -23,6 +24,7 @@ export default function App() {
             <Route path="/sales" element={<SalesPage />} />
             <Route path="/purchasing" element={<PurchasingPage />} />
             <Route path="/accounting" element={<AccountingPage />} />
+            <Route path="/users" element={<UsersPage />} />
           </Routes>
         </Layout>
       </Router>

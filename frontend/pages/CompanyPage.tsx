@@ -5,13 +5,27 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/components/ui/use-toast";
-import { Plus } from "lucide-react";
+import { Plus, Edit, Trash2 } from "lucide-react";
 import backend from "~backend/client";
 import type { CreateCompanyRequest } from "~backend/company/create";
+import type { UpdateCompanyRequest } from "~backend/company/update";
+
+const currencies = [
+  { code: "USD", name: "US Dollar" },
+  { code: "IDR", name: "Indonesian Rupiah" },
+  { code: "EUR", name: "Euro" },
+  { code: "GBP", name: "British Pound" },
+  { code: "JPY", name: "Japanese Yen" },
+  { code: "SGD", name: "Singapore Dollar" },
+  { code: "MYR", name: "Malaysian Ringgit" },
+  { code: "THB", name: "Thai Baht" },
+];
 
 export default function CompanyPage() {
   const [showForm, setShowForm] = useState(false);
+  const [editingCompany, setEditingCompany] = useState<any>(null);
   const [formData, setFormData] = useState<CreateCompanyRequest>({
     name: "",
     address: "",
@@ -35,15 +49,7 @@ export default function CompanyPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["companies"] });
       setShowForm(false);
-      setFormData({
-        name: "",
-        address: "",
-        phone: "",
-        email: "",
-        taxId: "",
-        currency: "USD",
-        fiscalYearStart: 1,
-      });
+      resetForm();
       toast({
         title: "Success",
         description: "Company created successfully",
@@ -59,9 +65,89 @@ export default function CompanyPage() {
     },
   });
 
+  const updateMutation = useMutation({
+    mutationFn: (data: UpdateCompanyRequest) => backend.company.update(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["companies"] });
+      setEditingCompany(null);
+      setShowForm(false);
+      resetForm();
+      toast({
+        title: "Success",
+        description: "Company updated successfully",
+      });
+    },
+    onError: (error) => {
+      console.error("Error updating company:", error);
+      toast({
+        title: "Error",
+        description: "Failed to update company",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: number) => backend.company.deleteCompany({ id }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["companies"] });
+      toast({
+        title: "Success",
+        description: "Company deleted successfully",
+      });
+    },
+    onError: (error) => {
+      console.error("Error deleting company:", error);
+      toast({
+        title: "Error",
+        description: "Failed to delete company",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const resetForm = () => {
+    setFormData({
+      name: "",
+      address: "",
+      phone: "",
+      email: "",
+      taxId: "",
+      currency: "USD",
+      fiscalYearStart: 1,
+    });
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    createMutation.mutate(formData);
+    if (editingCompany) {
+      updateMutation.mutate({
+        id: editingCompany.id,
+        ...formData,
+      });
+    } else {
+      createMutation.mutate(formData);
+    }
+  };
+
+  const handleEdit = (company: any) => {
+    setEditingCompany(company);
+    setFormData({
+      name: company.name,
+      address: company.address || "",
+      phone: company.phone || "",
+      email: company.email || "",
+      taxId: company.taxId || "",
+      currency: "USD",
+      fiscalYearStart: 1,
+    });
+    setShowForm(true);
+  };
+
+  const handleDelete = (id: number) => {
+    if (confirm("Are you sure you want to delete this company?")) {
+      deleteMutation.mutate(id);
+    }
   };
 
   if (isLoading) {
@@ -75,7 +161,7 @@ export default function CompanyPage() {
           <h1 className="text-3xl font-bold text-gray-900">Company Management</h1>
           <p className="text-gray-600">Manage your company information</p>
         </div>
-        <Button onClick={() => setShowForm(true)}>
+        <Button onClick={() => { setShowForm(true); setEditingCompany(null); resetForm(); }}>
           <Plus className="mr-2 h-4 w-4" />
           Add Company
         </Button>
@@ -84,7 +170,7 @@ export default function CompanyPage() {
       {showForm && (
         <Card>
           <CardHeader>
-            <CardTitle>Create New Company</CardTitle>
+            <CardTitle>{editingCompany ? "Edit Company" : "Create New Company"}</CardTitle>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
@@ -125,11 +211,21 @@ export default function CompanyPage() {
                 </div>
                 <div>
                   <Label htmlFor="currency">Currency</Label>
-                  <Input
-                    id="currency"
+                  <Select
                     value={formData.currency}
-                    onChange={(e) => setFormData({ ...formData, currency: e.target.value })}
-                  />
+                    onValueChange={(value) => setFormData({ ...formData, currency: value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {currencies.map((currency) => (
+                        <SelectItem key={currency.code} value={currency.code}>
+                          {currency.code} - {currency.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div>
                   <Label htmlFor="fiscalYearStart">Fiscal Year Start (Month)</Label>
@@ -152,10 +248,10 @@ export default function CompanyPage() {
                 />
               </div>
               <div className="flex space-x-2">
-                <Button type="submit" disabled={createMutation.isPending}>
-                  {createMutation.isPending ? "Creating..." : "Create Company"}
+                <Button type="submit" disabled={createMutation.isPending || updateMutation.isPending}>
+                  {(createMutation.isPending || updateMutation.isPending) ? "Saving..." : (editingCompany ? "Update Company" : "Create Company")}
                 </Button>
-                <Button type="button" variant="outline" onClick={() => setShowForm(false)}>
+                <Button type="button" variant="outline" onClick={() => { setShowForm(false); setEditingCompany(null); }}>
                   Cancel
                 </Button>
               </div>
@@ -168,7 +264,26 @@ export default function CompanyPage() {
         {companies?.companies.map((company) => (
           <Card key={company.id}>
             <CardHeader>
-              <CardTitle>{company.name}</CardTitle>
+              <div className="flex justify-between items-start">
+                <CardTitle>{company.name}</CardTitle>
+                <div className="flex space-x-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleEdit(company)}
+                  >
+                    <Edit className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleDelete(company.id)}
+                    disabled={deleteMutation.isPending}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
             </CardHeader>
             <CardContent className="space-y-2">
               {company.email && (

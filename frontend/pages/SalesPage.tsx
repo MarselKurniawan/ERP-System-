@@ -9,14 +9,18 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/components/ui/use-toast";
-import { Plus, Users, ShoppingCart, Trash2 } from "lucide-react";
+import { Plus, Users, ShoppingCart, Trash2, Edit } from "lucide-react";
 import backend from "~backend/client";
 import type { CreateCustomerRequest } from "~backend/sales/create_customer";
 import type { CreateSalesOrderRequest, OrderItem } from "~backend/sales/create_order";
+import type { UpdateCustomerRequest } from "~backend/sales/update_customer";
+import type { UpdateSalesOrderRequest } from "~backend/sales/update_order";
 
 export default function SalesPage() {
   const [showCustomerForm, setShowCustomerForm] = useState(false);
   const [showOrderForm, setShowOrderForm] = useState(false);
+  const [editingCustomer, setEditingCustomer] = useState<any>(null);
+  const [editingOrder, setEditingOrder] = useState<any>(null);
   const [customerData, setCustomerData] = useState<CreateCustomerRequest>({
     name: "",
     email: "",
@@ -66,14 +70,7 @@ export default function SalesPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["customers"] });
       setShowCustomerForm(false);
-      setCustomerData({
-        name: "",
-        email: "",
-        phone: "",
-        address: "",
-        taxId: "",
-        creditLimit: 0,
-      });
+      resetCustomerForm();
       toast({
         title: "Success",
         description: "Customer created successfully",
@@ -89,20 +86,53 @@ export default function SalesPage() {
     },
   });
 
+  const updateCustomerMutation = useMutation({
+    mutationFn: (data: UpdateCustomerRequest) => backend.sales.updateCustomer(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["customers"] });
+      setEditingCustomer(null);
+      setShowCustomerForm(false);
+      resetCustomerForm();
+      toast({
+        title: "Success",
+        description: "Customer updated successfully",
+      });
+    },
+    onError: (error) => {
+      console.error("Error updating customer:", error);
+      toast({
+        title: "Error",
+        description: "Failed to update customer",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const deleteCustomerMutation = useMutation({
+    mutationFn: (id: number) => backend.sales.deleteCustomer({ id }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["customers"] });
+      toast({
+        title: "Success",
+        description: "Customer deleted successfully",
+      });
+    },
+    onError: (error) => {
+      console.error("Error deleting customer:", error);
+      toast({
+        title: "Error",
+        description: "Failed to delete customer",
+        variant: "destructive",
+      });
+    },
+  });
+
   const createOrderMutation = useMutation({
     mutationFn: (data: CreateSalesOrderRequest) => backend.sales.createOrder(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["sales-orders"] });
       setShowOrderForm(false);
-      setOrderData({
-        customerId: 0,
-        orderDate: new Date(),
-        dueDate: undefined,
-        items: [],
-        taxRate: 0,
-        discountAmount: 0,
-        notes: "",
-      });
+      resetOrderForm();
       toast({
         title: "Success",
         description: "Sales order created successfully",
@@ -118,9 +148,78 @@ export default function SalesPage() {
     },
   });
 
+  const updateOrderMutation = useMutation({
+    mutationFn: (data: UpdateSalesOrderRequest) => backend.sales.updateOrder(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["sales-orders"] });
+      setEditingOrder(null);
+      toast({
+        title: "Success",
+        description: "Sales order updated successfully",
+      });
+    },
+    onError: (error) => {
+      console.error("Error updating sales order:", error);
+      toast({
+        title: "Error",
+        description: "Failed to update sales order",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const deleteOrderMutation = useMutation({
+    mutationFn: (id: number) => backend.sales.deleteOrder({ id }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["sales-orders"] });
+      toast({
+        title: "Success",
+        description: "Sales order deleted successfully",
+      });
+    },
+    onError: (error) => {
+      console.error("Error deleting sales order:", error);
+      toast({
+        title: "Error",
+        description: "Failed to delete sales order",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const resetCustomerForm = () => {
+    setCustomerData({
+      name: "",
+      email: "",
+      phone: "",
+      address: "",
+      taxId: "",
+      creditLimit: 0,
+    });
+  };
+
+  const resetOrderForm = () => {
+    setOrderData({
+      customerId: 0,
+      orderDate: new Date(),
+      dueDate: undefined,
+      items: [],
+      taxRate: 0,
+      discountAmount: 0,
+      notes: "",
+    });
+  };
+
   const handleCustomerSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    createCustomerMutation.mutate(customerData);
+    if (editingCustomer) {
+      updateCustomerMutation.mutate({
+        id: editingCustomer.id,
+        ...customerData,
+      });
+    } else {
+      createCustomerMutation.mutate(customerData);
+    }
   };
 
   const handleOrderSubmit = (e: React.FormEvent) => {
@@ -134,6 +233,38 @@ export default function SalesPage() {
       return;
     }
     createOrderMutation.mutate(orderData);
+  };
+
+  const handleEditCustomer = (customer: any) => {
+    setEditingCustomer(customer);
+    setCustomerData({
+      name: customer.name,
+      email: customer.email || "",
+      phone: customer.phone || "",
+      address: customer.address || "",
+      taxId: customer.taxId || "",
+      creditLimit: customer.creditLimit,
+    });
+    setShowCustomerForm(true);
+  };
+
+  const handleDeleteCustomer = (id: number) => {
+    if (confirm("Are you sure you want to delete this customer?")) {
+      deleteCustomerMutation.mutate(id);
+    }
+  };
+
+  const handleDeleteOrder = (id: number) => {
+    if (confirm("Are you sure you want to delete this sales order?")) {
+      deleteOrderMutation.mutate(id);
+    }
+  };
+
+  const handleUpdateOrderStatus = (order: any, status: string) => {
+    updateOrderMutation.mutate({
+      id: order.id,
+      status: status as "draft" | "confirmed" | "shipped" | "delivered" | "cancelled",
+    });
   };
 
   const addItemToOrder = () => {
@@ -208,7 +339,7 @@ export default function SalesPage() {
         <TabsContent value="orders" className="space-y-4">
           <div className="flex justify-between items-center">
             <h2 className="text-xl font-semibold">Sales Orders</h2>
-            <Button onClick={() => setShowOrderForm(true)}>
+            <Button onClick={() => { setShowOrderForm(true); resetOrderForm(); }}>
               <Plus className="mr-2 h-4 w-4" />
               Create Order
             </Button>
@@ -399,7 +530,32 @@ export default function SalesPage() {
                       </CardTitle>
                       <p className="text-sm text-gray-600">Customer: {order.customerName}</p>
                     </div>
-                    {getStatusBadge(order.status)}
+                    <div className="flex items-center space-x-2">
+                      {getStatusBadge(order.status)}
+                      <Select
+                        value={order.status}
+                        onValueChange={(value) => handleUpdateOrderStatus(order, value)}
+                      >
+                        <SelectTrigger className="w-32">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="draft">Draft</SelectItem>
+                          <SelectItem value="confirmed">Confirmed</SelectItem>
+                          <SelectItem value="shipped">Shipped</SelectItem>
+                          <SelectItem value="delivered">Delivered</SelectItem>
+                          <SelectItem value="cancelled">Cancelled</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleDeleteOrder(order.id)}
+                        disabled={deleteOrderMutation.isPending}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </div>
                 </CardHeader>
                 <CardContent>
@@ -432,7 +588,7 @@ export default function SalesPage() {
         <TabsContent value="customers" className="space-y-4">
           <div className="flex justify-between items-center">
             <h2 className="text-xl font-semibold">Customers</h2>
-            <Button onClick={() => setShowCustomerForm(true)}>
+            <Button onClick={() => { setShowCustomerForm(true); setEditingCustomer(null); resetCustomerForm(); }}>
               <Plus className="mr-2 h-4 w-4" />
               Add Customer
             </Button>
@@ -441,7 +597,7 @@ export default function SalesPage() {
           {showCustomerForm && (
             <Card>
               <CardHeader>
-                <CardTitle>Create New Customer</CardTitle>
+                <CardTitle>{editingCustomer ? "Edit Customer" : "Create New Customer"}</CardTitle>
               </CardHeader>
               <CardContent>
                 <form onSubmit={handleCustomerSubmit} className="space-y-4">
@@ -500,10 +656,10 @@ export default function SalesPage() {
                     />
                   </div>
                   <div className="flex space-x-2">
-                    <Button type="submit" disabled={createCustomerMutation.isPending}>
-                      {createCustomerMutation.isPending ? "Creating..." : "Create Customer"}
+                    <Button type="submit" disabled={createCustomerMutation.isPending || updateCustomerMutation.isPending}>
+                      {(createCustomerMutation.isPending || updateCustomerMutation.isPending) ? "Saving..." : (editingCustomer ? "Update Customer" : "Create Customer")}
                     </Button>
-                    <Button type="button" variant="outline" onClick={() => setShowCustomerForm(false)}>
+                    <Button type="button" variant="outline" onClick={() => { setShowCustomerForm(false); setEditingCustomer(null); }}>
                       Cancel
                     </Button>
                   </div>
@@ -516,10 +672,29 @@ export default function SalesPage() {
             {customers?.customers.map((customer) => (
               <Card key={customer.id}>
                 <CardHeader>
-                  <CardTitle className="flex items-center">
-                    <Users className="mr-2 h-5 w-5" />
-                    {customer.name}
-                  </CardTitle>
+                  <div className="flex justify-between items-start">
+                    <CardTitle className="flex items-center">
+                      <Users className="mr-2 h-5 w-5" />
+                      {customer.name}
+                    </CardTitle>
+                    <div className="flex space-x-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleEditCustomer(customer)}
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleDeleteCustomer(customer.id)}
+                        disabled={deleteCustomerMutation.isPending}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
                 </CardHeader>
                 <CardContent className="space-y-2">
                   {customer.email && (

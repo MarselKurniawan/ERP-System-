@@ -9,14 +9,18 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/components/ui/use-toast";
-import { Plus, Package, AlertTriangle } from "lucide-react";
+import { Plus, Package, AlertTriangle, Edit, Trash2 } from "lucide-react";
 import backend from "~backend/client";
 import type { CreateCategoryRequest } from "~backend/inventory/create_category";
 import type { CreateProductRequest } from "~backend/inventory/create_product";
+import type { UpdateCategoryRequest } from "~backend/inventory/update_category";
+import type { UpdateProductRequest } from "~backend/inventory/update_product";
 
 export default function InventoryPage() {
   const [showCategoryForm, setShowCategoryForm] = useState(false);
   const [showProductForm, setShowProductForm] = useState(false);
+  const [editingCategory, setEditingCategory] = useState<any>(null);
+  const [editingProduct, setEditingProduct] = useState<any>(null);
   const [categoryData, setCategoryData] = useState<CreateCategoryRequest>({
     name: "",
     description: "",
@@ -52,7 +56,7 @@ export default function InventoryPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["categories"] });
       setShowCategoryForm(false);
-      setCategoryData({ name: "", description: "" });
+      resetCategoryForm();
       toast({
         title: "Success",
         description: "Category created successfully",
@@ -68,23 +72,53 @@ export default function InventoryPage() {
     },
   });
 
+  const updateCategoryMutation = useMutation({
+    mutationFn: (data: UpdateCategoryRequest) => backend.inventory.updateCategory(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["categories"] });
+      setEditingCategory(null);
+      setShowCategoryForm(false);
+      resetCategoryForm();
+      toast({
+        title: "Success",
+        description: "Category updated successfully",
+      });
+    },
+    onError: (error) => {
+      console.error("Error updating category:", error);
+      toast({
+        title: "Error",
+        description: "Failed to update category",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const deleteCategoryMutation = useMutation({
+    mutationFn: (id: number) => backend.inventory.deleteCategory({ id }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["categories"] });
+      toast({
+        title: "Success",
+        description: "Category deleted successfully",
+      });
+    },
+    onError: (error) => {
+      console.error("Error deleting category:", error);
+      toast({
+        title: "Error",
+        description: "Failed to delete category",
+        variant: "destructive",
+      });
+    },
+  });
+
   const createProductMutation = useMutation({
     mutationFn: (data: CreateProductRequest) => backend.inventory.createProduct(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["products"] });
       setShowProductForm(false);
-      setProductData({
-        sku: "",
-        name: "",
-        description: "",
-        categoryId: undefined,
-        unitPrice: 0,
-        costPrice: 0,
-        stockQuantity: 0,
-        minStockLevel: 0,
-        maxStockLevel: undefined,
-        unit: "pcs",
-      });
+      resetProductForm();
       toast({
         title: "Success",
         description: "Product created successfully",
@@ -100,14 +134,126 @@ export default function InventoryPage() {
     },
   });
 
+  const updateProductMutation = useMutation({
+    mutationFn: (data: UpdateProductRequest) => backend.inventory.updateProduct(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["products"] });
+      setEditingProduct(null);
+      setShowProductForm(false);
+      resetProductForm();
+      toast({
+        title: "Success",
+        description: "Product updated successfully",
+      });
+    },
+    onError: (error) => {
+      console.error("Error updating product:", error);
+      toast({
+        title: "Error",
+        description: "Failed to update product",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const deleteProductMutation = useMutation({
+    mutationFn: (id: number) => backend.inventory.deleteProduct({ id }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["products"] });
+      toast({
+        title: "Success",
+        description: "Product deleted successfully",
+      });
+    },
+    onError: (error) => {
+      console.error("Error deleting product:", error);
+      toast({
+        title: "Error",
+        description: "Failed to delete product",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const resetCategoryForm = () => {
+    setCategoryData({ name: "", description: "" });
+  };
+
+  const resetProductForm = () => {
+    setProductData({
+      sku: "",
+      name: "",
+      description: "",
+      categoryId: undefined,
+      unitPrice: 0,
+      costPrice: 0,
+      stockQuantity: 0,
+      minStockLevel: 0,
+      maxStockLevel: undefined,
+      unit: "pcs",
+    });
+  };
+
   const handleCategorySubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    createCategoryMutation.mutate(categoryData);
+    if (editingCategory) {
+      updateCategoryMutation.mutate({
+        id: editingCategory.id,
+        ...categoryData,
+      });
+    } else {
+      createCategoryMutation.mutate(categoryData);
+    }
   };
 
   const handleProductSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    createProductMutation.mutate(productData);
+    if (editingProduct) {
+      updateProductMutation.mutate({
+        id: editingProduct.id,
+        ...productData,
+      });
+    } else {
+      createProductMutation.mutate(productData);
+    }
+  };
+
+  const handleEditCategory = (category: any) => {
+    setEditingCategory(category);
+    setCategoryData({
+      name: category.name,
+      description: category.description || "",
+    });
+    setShowCategoryForm(true);
+  };
+
+  const handleEditProduct = (product: any) => {
+    setEditingProduct(product);
+    setProductData({
+      sku: product.sku,
+      name: product.name,
+      description: product.description || "",
+      categoryId: product.categoryId,
+      unitPrice: product.unitPrice,
+      costPrice: product.costPrice,
+      stockQuantity: product.stockQuantity,
+      minStockLevel: product.minStockLevel,
+      maxStockLevel: product.maxStockLevel,
+      unit: product.unit,
+    });
+    setShowProductForm(true);
+  };
+
+  const handleDeleteCategory = (id: number) => {
+    if (confirm("Are you sure you want to delete this category?")) {
+      deleteCategoryMutation.mutate(id);
+    }
+  };
+
+  const handleDeleteProduct = (id: number) => {
+    if (confirm("Are you sure you want to delete this product?")) {
+      deleteProductMutation.mutate(id);
+    }
   };
 
   const lowStockProducts = products?.products.filter(p => p.stockQuantity <= p.minStockLevel) || [];
@@ -151,7 +297,7 @@ export default function InventoryPage() {
         <TabsContent value="products" className="space-y-4">
           <div className="flex justify-between items-center">
             <h2 className="text-xl font-semibold">Products</h2>
-            <Button onClick={() => setShowProductForm(true)}>
+            <Button onClick={() => { setShowProductForm(true); setEditingProduct(null); resetProductForm(); }}>
               <Plus className="mr-2 h-4 w-4" />
               Add Product
             </Button>
@@ -160,7 +306,7 @@ export default function InventoryPage() {
           {showProductForm && (
             <Card>
               <CardHeader>
-                <CardTitle>Create New Product</CardTitle>
+                <CardTitle>{editingProduct ? "Edit Product" : "Create New Product"}</CardTitle>
               </CardHeader>
               <CardContent>
                 <form onSubmit={handleProductSubmit} className="space-y-4">
@@ -229,15 +375,17 @@ export default function InventoryPage() {
                         onChange={(e) => setProductData({ ...productData, costPrice: parseFloat(e.target.value) || 0 })}
                       />
                     </div>
-                    <div>
-                      <Label htmlFor="stockQuantity">Initial Stock</Label>
-                      <Input
-                        id="stockQuantity"
-                        type="number"
-                        value={productData.stockQuantity}
-                        onChange={(e) => setProductData({ ...productData, stockQuantity: parseInt(e.target.value) || 0 })}
-                      />
-                    </div>
+                    {!editingProduct && (
+                      <div>
+                        <Label htmlFor="stockQuantity">Initial Stock</Label>
+                        <Input
+                          id="stockQuantity"
+                          type="number"
+                          value={productData.stockQuantity}
+                          onChange={(e) => setProductData({ ...productData, stockQuantity: parseInt(e.target.value) || 0 })}
+                        />
+                      </div>
+                    )}
                     <div>
                       <Label htmlFor="minStockLevel">Min Stock Level</Label>
                       <Input
@@ -257,10 +405,10 @@ export default function InventoryPage() {
                     />
                   </div>
                   <div className="flex space-x-2">
-                    <Button type="submit" disabled={createProductMutation.isPending}>
-                      {createProductMutation.isPending ? "Creating..." : "Create Product"}
+                    <Button type="submit" disabled={createProductMutation.isPending || updateProductMutation.isPending}>
+                      {(createProductMutation.isPending || updateProductMutation.isPending) ? "Saving..." : (editingProduct ? "Update Product" : "Create Product")}
                     </Button>
-                    <Button type="button" variant="outline" onClick={() => setShowProductForm(false)}>
+                    <Button type="button" variant="outline" onClick={() => { setShowProductForm(false); setEditingProduct(null); }}>
                       Cancel
                     </Button>
                   </div>
@@ -273,11 +421,32 @@ export default function InventoryPage() {
             {products?.products.map((product) => (
               <Card key={product.id}>
                 <CardHeader>
-                  <CardTitle className="flex items-center justify-between">
-                    <span>{product.name}</span>
-                    <Package className="h-5 w-5 text-gray-400" />
-                  </CardTitle>
-                  <p className="text-sm text-gray-600">SKU: {product.sku}</p>
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <CardTitle className="flex items-center">
+                        <Package className="mr-2 h-5 w-5" />
+                        {product.name}
+                      </CardTitle>
+                      <p className="text-sm text-gray-600">SKU: {product.sku}</p>
+                    </div>
+                    <div className="flex space-x-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleEditProduct(product)}
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleDeleteProduct(product.id)}
+                        disabled={deleteProductMutation.isPending}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
                 </CardHeader>
                 <CardContent className="space-y-2">
                   <div className="flex justify-between">
@@ -309,7 +478,7 @@ export default function InventoryPage() {
         <TabsContent value="categories" className="space-y-4">
           <div className="flex justify-between items-center">
             <h2 className="text-xl font-semibold">Categories</h2>
-            <Button onClick={() => setShowCategoryForm(true)}>
+            <Button onClick={() => { setShowCategoryForm(true); setEditingCategory(null); resetCategoryForm(); }}>
               <Plus className="mr-2 h-4 w-4" />
               Add Category
             </Button>
@@ -318,7 +487,7 @@ export default function InventoryPage() {
           {showCategoryForm && (
             <Card>
               <CardHeader>
-                <CardTitle>Create New Category</CardTitle>
+                <CardTitle>{editingCategory ? "Edit Category" : "Create New Category"}</CardTitle>
               </CardHeader>
               <CardContent>
                 <form onSubmit={handleCategorySubmit} className="space-y-4">
@@ -340,10 +509,10 @@ export default function InventoryPage() {
                     />
                   </div>
                   <div className="flex space-x-2">
-                    <Button type="submit" disabled={createCategoryMutation.isPending}>
-                      {createCategoryMutation.isPending ? "Creating..." : "Create Category"}
+                    <Button type="submit" disabled={createCategoryMutation.isPending || updateCategoryMutation.isPending}>
+                      {(createCategoryMutation.isPending || updateCategoryMutation.isPending) ? "Saving..." : (editingCategory ? "Update Category" : "Create Category")}
                     </Button>
-                    <Button type="button" variant="outline" onClick={() => setShowCategoryForm(false)}>
+                    <Button type="button" variant="outline" onClick={() => { setShowCategoryForm(false); setEditingCategory(null); }}>
                       Cancel
                     </Button>
                   </div>
@@ -356,7 +525,26 @@ export default function InventoryPage() {
             {categories?.categories.map((category) => (
               <Card key={category.id}>
                 <CardHeader>
-                  <CardTitle>{category.name}</CardTitle>
+                  <div className="flex justify-between items-start">
+                    <CardTitle>{category.name}</CardTitle>
+                    <div className="flex space-x-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleEditCategory(category)}
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleDeleteCategory(category.id)}
+                        disabled={deleteCategoryMutation.isPending}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
                 </CardHeader>
                 <CardContent>
                   {category.description && (

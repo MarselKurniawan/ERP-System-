@@ -11,7 +11,8 @@ import {
   Calculator,
   BarChart3,
   Menu,
-  Home
+  Home,
+  Users
 } from "lucide-react";
 
 const navigation = [
@@ -21,6 +22,7 @@ const navigation = [
   { name: "Sales", href: "/sales", icon: ShoppingCart },
   { name: "Purchasing", href: "/purchasing", icon: Truck },
   { name: "Accounting", href: "/accounting", icon: Calculator },
+  { name: "Users", href: "/users", icon: Users },
 ];
 
 interface LayoutProps {
