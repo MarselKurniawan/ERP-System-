@@ -2,6 +2,11 @@ import { api } from "encore.dev/api";
 import { purchasingDB } from "./db";
 import { reportCache } from "../accounting/cache";
 
+export interface AgingPayablesRequest {
+  asOfDate?: string;
+  companyId?: number;
+}
+
 export interface AgingPayablesEntry {
   supplier_id: number;
   supplier_name: string;
@@ -36,36 +41,61 @@ export interface AgingPayablesReport {
 }
 
 export const agingPayablesReport = api(
-  { method: "GET", path: "/purchasing/aging-payables-report", expose: true },
-  async (): Promise<AgingPayablesReport> => {
+  { method: "POST", path: "/purchasing/aging-payables-report", expose: true, auth: true },
+  async (req: AgingPayablesRequest): Promise<AgingPayablesReport> => {
+    const asOfDate = req.asOfDate || new Date().toISOString().split('T')[0];
 
-    const asOfDate = new Date().toISOString().split('T')[0];
-
-    const cacheKey = `ap:${asOfDate}`;
+    const cacheKey = `ap:${asOfDate}:${req.companyId || 'all'}`;
     const cached = reportCache.get<AgingPayablesReport>(cacheKey);
     if (cached) {
       return cached;
     }
 
     const rows = [];
-    for await (const row of purchasingDB.query`
-      SELECT 
-        si.id as invoice_id,
-        si.supplier_id,
-        s.name as supplier_name,
-        si.invoice_number,
-        si.invoice_date,
-        si.due_date,
-        si.total_amount,
-        si.paid_amount,
-        si.total_amount - si.paid_amount as balance_due,
-        CURRENT_DATE - si.due_date::date as days_overdue
-      FROM supplier_invoices si
-      JOIN suppliers s ON si.supplier_id = s.id
-      WHERE si.status != 'paid'
-      ORDER BY s.name, si.due_date
-    `) {
-      rows.push(row);
+    
+    if (req.companyId) {
+      for await (const row of purchasingDB.query`
+        SELECT 
+          si.id as invoice_id,
+          si.supplier_id,
+          s.name as supplier_name,
+          si.invoice_number,
+          si.invoice_date,
+          si.due_date,
+          si.total_amount,
+          COALESCE(si.amount_paid, 0) as paid_amount,
+          si.total_amount - COALESCE(si.amount_paid, 0) as balance_due,
+          CAST(${asOfDate} AS DATE) - si.due_date::date as days_overdue
+        FROM supplier_invoices si
+        JOIN suppliers s ON si.supplier_id = s.id
+        WHERE si.status != 'cancelled'
+          AND si.company_id = ${req.companyId}
+          AND (si.total_amount - COALESCE(si.amount_paid, 0)) > 0
+        ORDER BY s.name, si.due_date
+      `) {
+        rows.push(row);
+      }
+    } else {
+      for await (const row of purchasingDB.query`
+        SELECT 
+          si.id as invoice_id,
+          si.supplier_id,
+          s.name as supplier_name,
+          si.invoice_number,
+          si.invoice_date,
+          si.due_date,
+          si.total_amount,
+          COALESCE(si.amount_paid, 0) as paid_amount,
+          si.total_amount - COALESCE(si.amount_paid, 0) as balance_due,
+          CAST(${asOfDate} AS DATE) - si.due_date::date as days_overdue
+        FROM supplier_invoices si
+        JOIN suppliers s ON si.supplier_id = s.id
+        WHERE si.status != 'cancelled'
+          AND (si.total_amount - COALESCE(si.amount_paid, 0)) > 0
+        ORDER BY s.name, si.due_date
+      `) {
+        rows.push(row);
+      }
     }
 
     const entries: AgingPayablesEntry[] = rows.map((row: any) => {

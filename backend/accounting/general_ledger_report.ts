@@ -8,6 +8,7 @@ export interface GeneralLedgerRequest {
   endDate: string;
   accountCode?: string;
   companyId?: number;
+  onlyWithTransactions?: boolean;
 }
 
 export interface GeneralLedgerEntry {
@@ -44,152 +45,147 @@ export const generalLedgerReport = api(
   { method: "POST", path: "/accounting/reports/general-ledger", expose: true, auth: true },
   async (req: GeneralLedgerRequest): Promise<GeneralLedgerReport> => {
     requireRole(["admin", "accountant", "manager"]);
-    const { startDate, endDate, accountCode } = req;
+    const { startDate, endDate, accountCode, companyId, onlyWithTransactions } = req;
 
-    const cacheKey = `gl:${startDate}:${endDate}:${accountCode || 'all'}`;
+    const cacheKey = `gl:${startDate}:${endDate}:${accountCode || 'all'}:${companyId || 'all'}:${onlyWithTransactions || false}`;
     const cached = reportCache.get<GeneralLedgerReport>(cacheKey);
     if (cached) {
       return cached;
     }
 
-    let accountFilter = '';
-    let openingQueryParams: any[] = [startDate];
-    let transQueryParams: any[] = [startDate, endDate];
-    
+    let accountQuery = `
+      SELECT DISTINCT a.id, a.account_code, a.name as account_name, a.account_type
+      FROM chart_of_accounts a
+      WHERE a.is_active = true
+    `;
+
+    const params: any[] = [];
+
     if (accountCode) {
-      accountFilter = 'AND a.account_code = $2';
-      openingQueryParams.push(accountCode);
-      transQueryParams.push(accountCode);
+      accountQuery += ` AND a.account_code = $${params.length + 1}`;
+      params.push(accountCode);
     }
 
-    const openingBalanceQuery = `
-      SELECT 
-        a.id,
-        a.account_code,
-        a.account_name,
-        a.account_type,
-        COALESCE(
+    if (companyId) {
+      accountQuery += ` AND a.company_id = $${params.length + 1}`;
+      params.push(companyId);
+    }
+
+    if (onlyWithTransactions) {
+      accountQuery += `
+        AND EXISTS (
+          SELECT 1 FROM journal_entry_lines jel
+          JOIN journal_entries je ON jel.journal_entry_id = je.id
+          WHERE jel.account_id = a.id
+            AND je.entry_date BETWEEN $${params.length + 1} AND $${params.length + 2}
+            AND je.status = 'posted'
+        )
+      `;
+      params.push(startDate, endDate);
+    }
+
+    accountQuery += ` ORDER BY a.account_code`;
+
+    const accountsResult = await accountingDB.rawQueryAll(accountQuery, ...params);
+
+    const accounts: GeneralLedgerAccount[] = [];
+
+    for (const accountRow of accountsResult) {
+      const openingBalanceQuery = `
+        SELECT 
           CASE 
-            WHEN a.account_type IN ('asset', 'expense') THEN SUM(jel.debit_amount - jel.credit_amount)
-            ELSE SUM(jel.credit_amount - jel.debit_amount)
-          END, 0
-        ) as opening_balance
-      FROM chart_of_accounts a
-      LEFT JOIN journal_entry_lines jel ON a.id = jel.account_id
-      LEFT JOIN journal_entries je ON jel.journal_entry_id = je.id AND je.entry_date < $1 AND je.status = 'posted'
-      WHERE a.is_active = true
-        ${accountFilter}
-      GROUP BY a.id, a.account_code, a.account_name, a.account_type
-      ORDER BY a.account_code
-    `;
+            WHEN $2 IN ('Asset', 'Expense') THEN COALESCE(SUM(jel.debit_amount - jel.credit_amount), 0)
+            ELSE COALESCE(SUM(jel.credit_amount - jel.debit_amount), 0)
+          END as opening_balance
+        FROM journal_entry_lines jel
+        JOIN journal_entries je ON jel.journal_entry_id = je.id
+        WHERE jel.account_id = $1
+          AND je.entry_date < $3
+          AND je.status = 'posted'
+      `;
 
-    const transactionsQuery = `
-      SELECT 
-        a.id as account_id,
-        a.account_code,
-        a.account_name,
-        a.account_type,
-        je.entry_date,
-        je.entry_number,
-        COALESCE(jel.description, je.description) as description,
-        je.reference_type,
-        je.reference_id,
-        jel.debit_amount,
-        jel.credit_amount
-      FROM chart_of_accounts a
-      INNER JOIN journal_entry_lines jel ON a.id = jel.account_id
-      INNER JOIN journal_entries je ON jel.journal_entry_id = je.id AND je.entry_date BETWEEN $1 AND $2 AND je.status = 'posted'
-      WHERE a.is_active = true
-        ${accountFilter}
-      ORDER BY a.account_code, je.entry_date, je.entry_number, jel.id
-    `;
+      const openingBalanceResult = await accountingDB.rawQueryRow(
+        openingBalanceQuery,
+        accountRow.id,
+        accountRow.account_type,
+        startDate
+      );
+      const openingBalance = parseFloat(openingBalanceResult?.opening_balance || 0);
 
-    const openingBalances = await accountingDB.rawQueryAll(openingBalanceQuery, ...openingQueryParams);
-    const transactions = await accountingDB.rawQueryAll(transactionsQuery, ...transQueryParams);
+      const entriesQuery = `
+        SELECT 
+          je.entry_date,
+          je.entry_number,
+          je.description,
+          je.reference_type,
+          je.reference_id,
+          jel.debit_amount,
+          jel.credit_amount
+        FROM journal_entry_lines jel
+        JOIN journal_entries je ON jel.journal_entry_id = je.id
+        WHERE jel.account_id = $1
+          AND je.entry_date BETWEEN $2 AND $3
+          AND je.status = 'posted'
+        ORDER BY je.entry_date, je.id
+      `;
 
-    const accountsMap = new Map<string, GeneralLedgerAccount>();
+      const entriesResult = await accountingDB.rawQueryAll(entriesQuery, accountRow.id, startDate, endDate);
 
-    openingBalances.forEach(row => {
-      accountsMap.set(row.account_code, {
-        accountCode: row.account_code,
-        accountName: row.account_name,
-        accountType: row.account_type,
-        openingBalance: parseFloat(row.opening_balance || 0),
-        totalDebits: 0,
-        totalCredits: 0,
-        closingBalance: 0,
-        entries: []
-      });
-    });
+      let runningBalance = openingBalance;
+      const entries: GeneralLedgerEntry[] = [];
+      let totalDebits = 0;
+      let totalCredits = 0;
 
-    transactions.forEach(row => {
-      const accountCode = row.account_code;
-      
-      if (!accountsMap.has(accountCode)) {
-        accountsMap.set(accountCode, {
-          accountCode: row.account_code,
-          accountName: row.account_name,
-          accountType: row.account_type,
-          openingBalance: 0,
-          totalDebits: 0,
-          totalCredits: 0,
-          closingBalance: 0,
-          entries: []
+      for (const entryRow of entriesResult) {
+        const debitAmount = parseFloat(entryRow.debit_amount || 0);
+        const creditAmount = parseFloat(entryRow.credit_amount || 0);
+
+        if (['Asset', 'Expense'].includes(accountRow.account_type)) {
+          runningBalance += (debitAmount - creditAmount);
+        } else {
+          runningBalance += (creditAmount - debitAmount);
+        }
+
+        totalDebits += debitAmount;
+        totalCredits += creditAmount;
+
+        entries.push({
+          entryDate: entryRow.entry_date,
+          entryNumber: entryRow.entry_number,
+          description: entryRow.description,
+          referenceType: entryRow.reference_type,
+          referenceId: entryRow.reference_id,
+          debitAmount,
+          creditAmount,
+          runningBalance,
         });
       }
 
-      const account = accountsMap.get(accountCode)!;
-      const debitAmount = parseFloat(row.debit_amount || 0);
-      const creditAmount = parseFloat(row.credit_amount || 0);
+      const closingBalance = runningBalance;
 
-      account.totalDebits += debitAmount;
-      account.totalCredits += creditAmount;
-
-      let balanceChange = 0;
-      if (account.accountType === 'asset' || account.accountType === 'expense') {
-        balanceChange = debitAmount - creditAmount;
-      } else {
-        balanceChange = creditAmount - debitAmount;
+      // Skip accounts with no transactions if onlyWithTransactions is true
+      if (onlyWithTransactions && entries.length === 0) {
+        continue;
       }
 
-      const runningBalance = account.openingBalance + account.entries.reduce((sum, entry) => {
-        if (account.accountType === 'asset' || account.accountType === 'expense') {
-          return sum + entry.debitAmount - entry.creditAmount;
-        } else {
-          return sum + entry.creditAmount - entry.debitAmount;
-        }
-      }, 0) + balanceChange;
-
-      account.entries.push({
-        entryDate: row.entry_date,
-        entryNumber: row.entry_number,
-        description: row.description,
-        referenceType: row.reference_type,
-        referenceId: row.reference_id,
-        debitAmount,
-        creditAmount,
-        runningBalance
+      accounts.push({
+        accountCode: accountRow.account_code,
+        accountName: accountRow.account_name,
+        accountType: accountRow.account_type,
+        openingBalance,
+        totalDebits,
+        totalCredits,
+        closingBalance,
+        entries,
       });
-    });
-
-    accountsMap.forEach(account => {
-      if (account.accountType === 'asset' || account.accountType === 'expense') {
-        account.closingBalance = account.openingBalance + account.totalDebits - account.totalCredits;
-      } else {
-        account.closingBalance = account.openingBalance + account.totalCredits - account.totalDebits;
-      }
-    });
-
-    const accounts = Array.from(accountsMap.values()).filter(account => 
-      account.entries.length > 0 || account.openingBalance !== 0
-    );
+    }
 
     const report = {
       accounts,
       periode: {
         startDate,
-        endDate
-      }
+        endDate,
+      },
     };
 
     reportCache.set(cacheKey, report, 5 * 60 * 1000);

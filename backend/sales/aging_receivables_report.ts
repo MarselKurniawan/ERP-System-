@@ -4,6 +4,7 @@ import { reportCache } from "../accounting/cache";
 
 export interface AgingReceivablesRequest {
   asOfDate?: string;
+  companyId?: number;
 }
 
 export interface AgingReceivableItem {
@@ -33,37 +34,44 @@ export interface AgingReceivablesReport {
 }
 
 export const agingReceivablesReport = api(
-  { method: "POST", path: "/sales/reports/aging-receivables", expose: true },
+  { method: "POST", path: "/sales/reports/aging-receivables", expose: true, auth: true },
   async (req: AgingReceivablesRequest): Promise<AgingReceivablesReport> => {
     const asOfDate = req.asOfDate || new Date().toISOString().split('T')[0];
 
-    const cacheKey = `ar:${asOfDate}`;
+    const cacheKey = `ar:${asOfDate}:${req.companyId || 'all'}`;
     const cached = reportCache.get<AgingReceivablesReport>(cacheKey);
     if (cached) {
       return cached;
     }
 
-    const query = `
+    let query = `
       SELECT 
         i.invoice_number,
         c.name as customer_name,
         i.invoice_date,
         i.due_date,
         i.total_amount,
-        i.paid_amount,
-        (i.total_amount - i.paid_amount) as remaining_amount,
+        COALESCE(i.amount_paid, 0) as paid_amount,
+        (i.total_amount - COALESCE(i.amount_paid, 0)) as remaining_amount,
         GREATEST(0, CAST($1 AS DATE) - CAST(i.due_date AS DATE)) as days_past_due,
         30 as payment_terms
       FROM invoices i
       INNER JOIN customers c ON i.customer_id = c.id
-      WHERE i.status != 'paid'
-        AND i.status != 'cancelled'
+      WHERE i.status != 'cancelled'
         AND i.invoice_date <= $1
-        AND (i.total_amount - i.paid_amount) > 0
-      ORDER BY days_past_due DESC, i.invoice_date
+        AND (i.total_amount - COALESCE(i.amount_paid, 0)) > 0
     `;
 
-    const results = await salesDB.rawQueryAll(query, asOfDate);
+    const params: any[] = [asOfDate];
+
+    if (req.companyId) {
+      query += ` AND i.company_id = $${params.length + 1}`;
+      params.push(req.companyId);
+    }
+
+    query += ` ORDER BY days_past_due DESC, i.invoice_date`;
+
+    const results = await salesDB.rawQueryAll(query, ...params);
 
     const items: AgingReceivableItem[] = results.map(row => {
       const daysPastDue = parseInt(row.days_past_due);

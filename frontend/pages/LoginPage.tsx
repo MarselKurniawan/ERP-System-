@@ -16,7 +16,7 @@ export default function LoginPage() {
   const { toast } = useToast();
 
   if (user) {
-    return <Navigate to="/" replace />;
+    return <Navigate to="/select-company" replace />;
   }
 
   const handleSubmit = async (e: React.FormEvent) => {

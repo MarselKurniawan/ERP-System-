@@ -68,6 +68,11 @@ export default function Layout({ children }: LayoutProps) {
     return <Navigate to="/login" replace />;
   }
 
+  // Redirect ke company selector jika belum pilih company
+  if (!selectedCompany && location.pathname !== '/select-company') {
+    return <Navigate to="/select-company" replace />;
+  }
+
   const handleLogout = async () => {
     try {
       await logout();

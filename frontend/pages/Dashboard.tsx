@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Package, ShoppingCart, Truck, DollarSign } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { formatRupiah } from "@/lib/utils";
 
 export default function Dashboard() {
   const { backend } = useAuth();
@@ -20,14 +21,6 @@ export default function Dashboard() {
     queryKey: ["purchase-orders"],
     queryFn: () => backend.purchasing.listPurchaseOrders(),
   });
-
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('id-ID', {
-      style: 'currency',
-      currency: 'IDR',
-      minimumFractionDigits: 0
-    }).format(amount);
-  };
 
   const lowStockProducts = products?.products.filter(p => p.stockQuantity <= p.minStockLevel) || [];
   const totalSalesValue = salesOrders?.orders.reduce((sum, order) => sum + order.totalAmount, 0) || 0;
@@ -62,7 +55,7 @@ export default function Dashboard() {
           <CardContent>
             <div className="text-2xl font-bold">{salesOrders?.orders.length || 0}</div>
             <p className="text-xs text-muted-foreground">
-              {formatCurrency(totalSalesValue)} total value
+              {formatRupiah(totalSalesValue)} total value
             </p>
           </CardContent>
         </Card>
@@ -75,7 +68,7 @@ export default function Dashboard() {
           <CardContent>
             <div className="text-2xl font-bold">{purchaseOrders?.orders.length || 0}</div>
             <p className="text-xs text-muted-foreground">
-              {formatCurrency(totalPurchaseValue)} total value
+              {formatRupiah(totalPurchaseValue)} total value
             </p>
           </CardContent>
         </Card>
@@ -87,7 +80,7 @@ export default function Dashboard() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {formatCurrency(totalSalesValue - totalPurchaseValue)}
+              {formatRupiah(totalSalesValue - totalPurchaseValue)}
             </div>
             <p className="text-xs text-muted-foreground">
               Sales minus purchases

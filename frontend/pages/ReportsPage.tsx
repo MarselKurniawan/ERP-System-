@@ -264,10 +264,14 @@ export default function ReportsPage() {
   const generateCashBankReport = async () => {
     setIsLoading(true);
     try {
-      const data = await backend.accounting.cashBankReport(
-        cashBankDate ? { asOfDate: cashBankDate } : {}
-      );
-      setCashBankData(data);
+      const today = new Date();
+      const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+      
+      const data = await backend.accounting.cashBankReport({
+        startDate: firstDay.toISOString().split('T')[0],
+        endDate: today.toISOString().split('T')[0],
+      });
+      setCashBankData(data as any);
       toast({ title: "Success", description: "Cash/Bank report generated successfully" });
     } catch (error) {
       console.error('Error generating cash/bank report:', error);
@@ -280,7 +284,7 @@ export default function ReportsPage() {
   const generateAgingPayablesReport = async () => {
     setIsLoading(true);
     try {
-      const data = await backend.purchasing.agingPayablesReport();
+      const data = await backend.purchasing.agingPayablesReport({});
       setAgingPayablesData(data);
       toast({ title: "Success", description: "Aging payables report generated successfully" });
     } catch (error) {

@@ -1,119 +1,142 @@
 import { api } from "encore.dev/api";
 import { accountingDB } from "./db";
 import { requireRole } from "../auth/permissions";
-import { reportCache } from "./cache";
 
 export interface CashBankRequest {
-  asOfDate?: string;
+  startDate: string;
+  endDate: string;
+  companyId?: number;
+  accountIds?: number[];
 }
 
-export interface CashBankItem {
+export interface CashBankTransaction {
+  date: string;
+  description: string;
+  referenceNumber: string;
+  debit: number;
+  credit: number;
+  balance: number;
+}
+
+export interface CashBankAccountReport {
+  accountId: number;
   accountCode: string;
   accountName: string;
-  balance: number;
-  category: string;
+  openingBalance: number;
+  transactions: CashBankTransaction[];
+  totalDebit: number;
+  totalCredit: number;
+  closingBalance: number;
 }
 
 export interface CashBankReport {
-  cash: CashBankItem[];
-  bank: CashBankItem[];
-  giro: CashBankItem[];
-  other: CashBankItem[];
-  summary: {
-    totalCash: number;
-    totalBank: number;
-    totalGiro: number;
-    totalOther: number;
-    grandTotal: number;
+  accounts: CashBankAccountReport[];
+  periode: {
+    startDate: string;
+    endDate: string;
   };
-  asOfDate: string;
 }
 
 export const cashBankReport = api(
   { method: "POST", path: "/accounting/reports/cash-bank", expose: true, auth: true },
   async (req: CashBankRequest): Promise<CashBankReport> => {
     requireRole(["admin", "accountant", "manager"]);
-    const asOfDate = req.asOfDate || new Date().toISOString().split('T')[0];
+    const { startDate, endDate, companyId, accountIds } = req;
 
-    const cacheKey = `cb:${asOfDate}`;
-    const cached = reportCache.get<CashBankReport>(cacheKey);
-    if (cached) {
-      return cached;
-    }
-
-    const query = `
-      SELECT 
-        a.account_code,
-        a.account_name,
-        COALESCE(SUM(jel.debit_amount - jel.credit_amount), 0) as balance
-      FROM chart_of_accounts a
-      LEFT JOIN journal_entry_lines jel ON a.id = jel.account_id
-      LEFT JOIN journal_entries je ON jel.journal_entry_id = je.id AND je.entry_date <= $1 AND je.status = 'posted'
-      WHERE a.account_code LIKE '1%'
-        AND a.is_active = true
-        AND (
-          LOWER(a.account_name) LIKE '%kas%' 
-          OR LOWER(a.account_name) LIKE '%bank%'
-          OR LOWER(a.account_name) LIKE '%giro%'
-          OR LOWER(a.account_name) LIKE '%cash%'
-        )
-      GROUP BY a.id, a.account_code, a.account_name
-      HAVING COALESCE(SUM(jel.debit_amount - jel.credit_amount), 0) != 0
-      ORDER BY a.account_code
+    let cashBankAccountsQuery = `
+      SELECT id, account_code, name
+      FROM chart_of_accounts
+      WHERE account_type = 'Asset'
+        AND (name ILIKE '%cash%' OR name ILIKE '%bank%' OR name ILIKE '%kas%')
+        AND is_active = true
     `;
 
-    const results = await accountingDB.rawQueryAll(query, asOfDate);
+    const params: any[] = [];
 
-    const cash: CashBankItem[] = [];
-    const bank: CashBankItem[] = [];
-    const giro: CashBankItem[] = [];
-    const other: CashBankItem[] = [];
+    if (companyId) {
+      cashBankAccountsQuery += ` AND company_id = $${params.length + 1}`;
+      params.push(companyId);
+    }
 
-    results.forEach(row => {
-      const accountName = row.account_name.toLowerCase();
-      const item: CashBankItem = {
-        accountCode: row.account_code,
-        accountName: row.account_name,
-        balance: parseFloat(row.balance),
-        category: ''
-      };
+    if (accountIds && accountIds.length > 0) {
+      cashBankAccountsQuery += ` AND id = ANY($${params.length + 1})`;
+      params.push(accountIds);
+    }
 
-      if (accountName.includes('kas') || accountName.includes('cash')) {
-        item.category = 'Kas';
-        cash.push(item);
-      } else if (accountName.includes('giro')) {
-        item.category = 'Giro';
-        giro.push(item);
-      } else if (accountName.includes('bank')) {
-        item.category = 'Bank';
-        bank.push(item);
-      } else {
-        item.category = 'Lainnya';
-        other.push(item);
-      }
-    });
+    cashBankAccountsQuery += ` ORDER BY account_code`;
 
-    const summary = {
-      totalCash: cash.reduce((sum, item) => sum + item.balance, 0),
-      totalBank: bank.reduce((sum, item) => sum + item.balance, 0),
-      totalGiro: giro.reduce((sum, item) => sum + item.balance, 0),
-      totalOther: other.reduce((sum, item) => sum + item.balance, 0),
-      grandTotal: 0
+    const cashBankAccounts = await accountingDB.rawQueryAll(cashBankAccountsQuery, ...params);
+
+    const accounts: CashBankAccountReport[] = [];
+
+    for (const account of cashBankAccounts) {
+      const openingBalanceQuery = `
+        SELECT COALESCE(SUM(jel.debit_amount - jel.credit_amount), 0) as opening_balance
+        FROM journal_entry_lines jel
+        JOIN journal_entries je ON jel.journal_entry_id = je.id
+        WHERE jel.account_id = $1
+          AND je.entry_date < $2
+          AND je.status = 'posted'
+      `;
+
+      const openingBalanceResult = await accountingDB.rawQueryRow(openingBalanceQuery, account.id, startDate);
+      const openingBalance = parseFloat(openingBalanceResult?.opening_balance || 0);
+
+      const transactionsQuery = `
+        SELECT 
+          je.entry_date as date,
+          je.description,
+          je.entry_number as reference_number,
+          jel.debit_amount as debit,
+          jel.credit_amount as credit
+        FROM journal_entry_lines jel
+        JOIN journal_entries je ON jel.journal_entry_id = je.id
+        WHERE jel.account_id = $1
+          AND je.entry_date BETWEEN $2 AND $3
+          AND je.status = 'posted'
+        ORDER BY je.entry_date, je.id
+      `;
+
+      const transactionsResult = await accountingDB.rawQueryAll(transactionsQuery, account.id, startDate, endDate);
+
+      let runningBalance = openingBalance;
+      const transactions: CashBankTransaction[] = transactionsResult.map((row) => {
+        const debit = parseFloat(row.debit || 0);
+        const credit = parseFloat(row.credit || 0);
+        runningBalance += (debit - credit);
+
+        return {
+          date: row.date,
+          description: row.description,
+          referenceNumber: row.reference_number,
+          debit,
+          credit,
+          balance: runningBalance,
+        };
+      });
+
+      const totalDebit = transactions.reduce((sum, t) => sum + t.debit, 0);
+      const totalCredit = transactions.reduce((sum, t) => sum + t.credit, 0);
+      const closingBalance = openingBalance + totalDebit - totalCredit;
+
+      accounts.push({
+        accountId: account.id,
+        accountCode: account.account_code,
+        accountName: account.name,
+        openingBalance,
+        transactions,
+        totalDebit,
+        totalCredit,
+        closingBalance,
+      });
+    }
+
+    return {
+      accounts,
+      periode: {
+        startDate,
+        endDate,
+      },
     };
-
-    summary.grandTotal = summary.totalCash + summary.totalBank + summary.totalGiro + summary.totalOther;
-
-    const report = {
-      cash,
-      bank,
-      giro,
-      other,
-      summary,
-      asOfDate
-    };
-
-    reportCache.set(cacheKey, report, 5 * 60 * 1000);
-
-    return report;
   }
 );

@@ -1,88 +1,81 @@
 import { useCompany } from '../contexts/CompanyContext';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Building2 } from 'lucide-react';
+import { Building2, CheckCircle2 } from 'lucide-react';
+import { Navigate } from 'react-router-dom';
 
 export default function CompanySelector() {
-  const { companies, selectedCompany, setSelectedCompany } = useCompany();
+  const { companies, selectedCompany, setSelectedCompany, loading } = useCompany();
+
+  // Jika sudah pilih company, redirect ke dashboard
+  if (selectedCompany) {
+    return <Navigate to="/" replace />;
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <Building2 className="w-16 h-16 mx-auto text-blue-600 mb-4 animate-pulse" />
+          <p className="text-gray-600">Loading companies...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (companies.length === 0) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <Card className="p-8 max-w-md w-full">
-          <div className="text-center">
-            <Building2 className="w-16 h-16 mx-auto text-gray-400 mb-4" />
-            <h2 className="text-2xl font-bold mb-2">Tidak Ada Perusahaan</h2>
-            <p className="text-gray-600 mb-6">
-              Anda belum memiliki akses ke perusahaan manapun. Silakan hubungi administrator untuk mendapatkan akses.
-            </p>
-          </div>
+        <Card className="p-8 max-w-md w-full text-center">
+          <Building2 className="w-16 h-16 mx-auto text-gray-400 mb-4" />
+          <h2 className="text-2xl font-bold mb-2">Tidak Ada Perusahaan</h2>
+          <p className="text-gray-600 mb-6">
+            Anda belum memiliki akses ke perusahaan manapun. Silakan hubungi administrator untuk mendapatkan akses.
+          </p>
         </Card>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
-      <Card className="p-8 max-w-2xl w-full">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-50 p-4">
+      <div className="max-w-4xl w-full">
         <div className="text-center mb-8">
-          <Building2 className="w-16 h-16 mx-auto text-blue-600 mb-4" />
-          <h2 className="text-3xl font-bold mb-2">Pilih Perusahaan</h2>
-          <p className="text-gray-600">
+          <Building2 className="w-20 h-20 mx-auto text-blue-600 mb-4" />
+          <h1 className="text-4xl font-bold text-gray-900 mb-2">Pilih Perusahaan</h1>
+          <p className="text-gray-600 text-lg">
             Pilih perusahaan yang ingin Anda kelola
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {companies.map((company) => (
             <Card
               key={company.id}
-              className={`p-6 cursor-pointer transition-all hover:shadow-lg ${
-                selectedCompany?.id === company.id
-                  ? 'border-blue-600 border-2 bg-blue-50'
-                  : 'border-gray-200 hover:border-blue-400'
-              }`}
+              className="p-6 cursor-pointer transition-all hover:shadow-xl hover:scale-105 border-2 hover:border-blue-400"
               onClick={() => setSelectedCompany(company)}
             >
-              <div className="flex items-start justify-between">
-                <div>
-                  <h3 className="text-xl font-semibold mb-2">{company.name}</h3>
-                  {company.industry && (
-                    <p className="text-sm text-gray-600">{company.industry}</p>
-                  )}
-                </div>
-                {selectedCompany?.id === company.id && (
-                  <div className="w-6 h-6 rounded-full bg-blue-600 flex items-center justify-center">
-                    <svg
-                      className="w-4 h-4 text-white"
-                      fill="none"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth="2"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path d="M5 13l4 4L19 7"></path>
-                    </svg>
+              <div className="flex flex-col h-full">
+                <div className="flex items-start justify-between mb-4">
+                  <div className="bg-blue-100 p-3 rounded-lg">
+                    <Building2 className="h-8 w-8 text-blue-600" />
                   </div>
+                </div>
+                <h3 className="text-xl font-bold text-gray-900 mb-2">{company.name}</h3>
+                {company.industry && (
+                  <p className="text-sm text-gray-600 mb-4">{company.industry}</p>
                 )}
+                <div className="mt-auto">
+                  <Button className="w-full" size="lg">
+                    <CheckCircle2 className="h-4 w-4 mr-2" />
+                    Pilih Perusahaan
+                  </Button>
+                </div>
               </div>
             </Card>
           ))}
         </div>
-
-        <div className="mt-8 text-center">
-          <Button
-            size="lg"
-            onClick={() => {
-              window.location.href = '/';
-            }}
-            disabled={!selectedCompany}
-          >
-            Lanjutkan
-          </Button>
-        </div>
-      </Card>
+      </div>
     </div>
   );
 }
