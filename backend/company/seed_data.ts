@@ -7,29 +7,32 @@ export const seedCompanies = api<void, { message: string }>(
   async () => {
     const companies = [
       {
-        name: "Acme Corporation",
-        address: "123 Business St, Jakarta, Indonesia",
-        phone: "+62-21-1234567",
-        email: "info@acme.com",
+        name: "PT Acme Indonesia",
+        address: "Jl. Sudirman No. 123, Jakarta Selatan 12190",
+        phone: "+62-21-5551234",
+        email: "info@acme.co.id",
         taxId: "01.234.567.8-901.000",
+        industry: "Manufacturing",
         currency: "IDR",
         fiscalYearStart: 1
       },
       {
-        name: "Tech Solutions Ltd",
-        address: "456 Innovation Ave, Surabaya, Indonesia",
-        phone: "+62-31-7654321",
-        email: "contact@techsolutions.com",
+        name: "PT Tech Solutions",
+        address: "Jl. Gatot Subroto No. 456, Surabaya 60271",
+        phone: "+62-31-7778899",
+        email: "contact@techsolutions.co.id",
         taxId: "02.345.678.9-012.000",
-        currency: "USD",
-        fiscalYearStart: 4
+        industry: "Technology",
+        currency: "IDR",
+        fiscalYearStart: 1
       },
       {
-        name: "Global Trading Co",
-        address: "789 Commerce Blvd, Bandung, Indonesia",
-        phone: "+62-22-9876543",
-        email: "sales@globaltrading.com",
+        name: "CV Global Trading",
+        address: "Jl. Asia Afrika No. 789, Bandung 40111",
+        phone: "+62-22-4445566",
+        email: "sales@globaltrading.co.id",
         taxId: "03.456.789.0-123.000",
+        industry: "Trading",
         currency: "IDR",
         fiscalYearStart: 1
       }
@@ -43,8 +46,8 @@ export const seedCompanies = api<void, { message: string }>(
 
       if (!existingCompany) {
         const newCompany = await companyDB.queryRow<{ id: number }>`
-          INSERT INTO companies (name, address, phone, email, tax_id)
-          VALUES (${company.name}, ${company.address}, ${company.phone}, ${company.email}, ${company.taxId})
+          INSERT INTO companies (name, address, phone, email, tax_id, industry)
+          VALUES (${company.name}, ${company.address}, ${company.phone}, ${company.email}, ${company.taxId}, ${company.industry})
           RETURNING id
         `;
 
