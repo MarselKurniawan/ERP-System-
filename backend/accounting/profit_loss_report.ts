@@ -34,7 +34,6 @@ export const profitLossReport = api(
   async (req: ProfitLossRequest): Promise<ProfitLossReport> => {
     const { startDate, endDate } = req;
 
-    // Query untuk mendapatkan saldo akun berdasarkan kategori
     const accountBalanceQuery = `
       SELECT 
         a.account_code,
@@ -52,47 +51,41 @@ export const profitLossReport = api(
       ORDER BY a.account_code
     `;
 
-    // 4. Pendapatan (Credit) - account codes starting with 4
-    const pendapatanResult = await accountingDB.query(accountBalanceQuery, ['4%', startDate, endDate]);
+    const pendapatanResult = await accountingDB.rawQueryAll(accountBalanceQuery, '4%', startDate, endDate);
     const pendapatan: ProfitLossItem[] = pendapatanResult.map(row => ({
       accountCode: row.account_code,
       accountName: row.account_name,
       amount: parseFloat(row.balance)
     }));
 
-    // 5. HPP (Debit) - account codes starting with 5
-    const hppResult = await accountingDB.query(accountBalanceQuery, ['5%', startDate, endDate]);
+    const hppResult = await accountingDB.rawQueryAll(accountBalanceQuery, '5%', startDate, endDate);
     const hpp: ProfitLossItem[] = hppResult.map(row => ({
       accountCode: row.account_code,
       accountName: row.account_name,
-      amount: Math.abs(parseFloat(row.balance)) // Make positive for display
+      amount: Math.abs(parseFloat(row.balance))
     }));
 
-    // 6. Biaya Operasional (Debit) - account codes starting with 6
-    const biayaOperasionalResult = await accountingDB.query(accountBalanceQuery, ['6%', startDate, endDate]);
+    const biayaOperasionalResult = await accountingDB.rawQueryAll(accountBalanceQuery, '6%', startDate, endDate);
     const biayaOperasional: ProfitLossItem[] = biayaOperasionalResult.map(row => ({
       accountCode: row.account_code,
       accountName: row.account_name,
-      amount: Math.abs(parseFloat(row.balance)) // Make positive for display
+      amount: Math.abs(parseFloat(row.balance))
     }));
 
-    // 7. Pendapatan Lain (Kredit) - account codes starting with 7
-    const pendapatanLainResult = await accountingDB.query(accountBalanceQuery, ['7%', startDate, endDate]);
+    const pendapatanLainResult = await accountingDB.rawQueryAll(accountBalanceQuery, '7%', startDate, endDate);
     const pendapatanLain: ProfitLossItem[] = pendapatanLainResult.map(row => ({
       accountCode: row.account_code,
       accountName: row.account_name,
       amount: parseFloat(row.balance)
     }));
 
-    // 8. Beban Lain (Debit) - account codes starting with 8
-    const bebanLainResult = await accountingDB.query(accountBalanceQuery, ['8%', startDate, endDate]);
+    const bebanLainResult = await accountingDB.rawQueryAll(accountBalanceQuery, '8%', startDate, endDate);
     const bebanLain: ProfitLossItem[] = bebanLainResult.map(row => ({
       accountCode: row.account_code,
       accountName: row.account_name,
-      amount: Math.abs(parseFloat(row.balance)) // Make positive for display
+      amount: Math.abs(parseFloat(row.balance))
     }));
 
-    // Calculations
     const totalPendapatan = pendapatan.reduce((sum, item) => sum + item.amount, 0);
     const totalHpp = hpp.reduce((sum, item) => sum + item.amount, 0);
     const pendapatanBersih = totalPendapatan - totalHpp;

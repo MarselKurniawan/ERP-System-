@@ -44,14 +44,15 @@ export const generalLedgerReport = api(
     const { startDate, endDate, accountCode } = req;
 
     let accountFilter = '';
-    let queryParams: any[] = [startDate, endDate];
+    let openingQueryParams: any[] = [startDate];
+    let transQueryParams: any[] = [startDate, endDate];
     
     if (accountCode) {
-      accountFilter = 'AND a.account_code = $3';
-      queryParams.push(accountCode);
+      accountFilter = 'AND a.account_code = $2';
+      openingQueryParams.push(accountCode);
+      transQueryParams.push(accountCode);
     }
 
-    // Query untuk mendapatkan opening balance
     const openingBalanceQuery = `
       SELECT 
         a.id,
@@ -75,7 +76,6 @@ export const generalLedgerReport = api(
       ORDER BY a.account_code
     `;
 
-    // Query untuk mendapatkan transaksi dalam periode
     const transactionsQuery = `
       SELECT 
         a.id as account_id,
@@ -99,13 +99,11 @@ export const generalLedgerReport = api(
       ORDER BY a.account_code, je.entry_date, je.entry_number, jel.id
     `;
 
-    const openingBalances = await accountingDB.query(openingBalanceQuery, queryParams);
-    const transactions = await accountingDB.query(transactionsQuery, [startDate, endDate, ...(accountCode ? [accountCode] : [])]);
+    const openingBalances = await accountingDB.rawQueryAll(openingBalanceQuery, ...openingQueryParams);
+    const transactions = await accountingDB.rawQueryAll(transactionsQuery, ...transQueryParams);
 
-    // Group transactions by account
     const accountsMap = new Map<string, GeneralLedgerAccount>();
 
-    // Initialize accounts with opening balances
     openingBalances.forEach(row => {
       accountsMap.set(row.account_code, {
         accountCode: row.account_code,
@@ -119,7 +117,6 @@ export const generalLedgerReport = api(
       });
     });
 
-    // Add transactions
     transactions.forEach(row => {
       const accountCode = row.account_code;
       
@@ -143,7 +140,6 @@ export const generalLedgerReport = api(
       account.totalDebits += debitAmount;
       account.totalCredits += creditAmount;
 
-      // Calculate running balance
       let balanceChange = 0;
       if (account.accountType === 'asset' || account.accountType === 'expense') {
         balanceChange = debitAmount - creditAmount;
@@ -171,7 +167,6 @@ export const generalLedgerReport = api(
       });
     });
 
-    // Calculate closing balances
     accountsMap.forEach(account => {
       if (account.accountType === 'asset' || account.accountType === 'expense') {
         account.closingBalance = account.openingBalance + account.totalDebits - account.totalCredits;
@@ -180,7 +175,6 @@ export const generalLedgerReport = api(
       }
     });
 
-    // Filter accounts that have transactions or non-zero opening balance
     const accounts = Array.from(accountsMap.values()).filter(account => 
       account.entries.length > 0 || account.openingBalance !== 0
     );

@@ -83,7 +83,6 @@ export const salesReport = api(
       paramIndex++;
     }
 
-    // Main sales report query
     const salesQuery = `
       SELECT 
         so.order_number,
@@ -107,7 +106,6 @@ export const salesReport = api(
       ORDER BY so.order_date DESC, so.order_number
     `;
 
-    // Summary query
     const summaryQuery = `
       SELECT 
         COUNT(DISTINCT so.id) as total_orders,
@@ -124,7 +122,6 @@ export const salesReport = api(
         ${statusFilter}
     `;
 
-    // By customer query
     const byCustomerQuery = `
       SELECT 
         c.id as customer_id,
@@ -143,7 +140,6 @@ export const salesReport = api(
       ORDER BY total_amount DESC
     `;
 
-    // By product query
     const byProductQuery = `
       SELECT 
         soi.product_id,
@@ -163,10 +159,10 @@ export const salesReport = api(
     `;
 
     const [salesResult, summaryResult, byCustomerResult, byProductResult] = await Promise.all([
-      salesDB.query(salesQuery, queryParams),
-      salesDB.query(summaryQuery, queryParams),
-      salesDB.query(byCustomerQuery, queryParams),
-      salesDB.query(byProductQuery, queryParams)
+      salesDB.rawQueryAll(salesQuery, ...queryParams),
+      salesDB.rawQueryAll(summaryQuery, ...queryParams),
+      salesDB.rawQueryAll(byCustomerQuery, ...queryParams),
+      salesDB.rawQueryAll(byProductQuery, ...queryParams)
     ]);
 
     const items: SalesReportItem[] = salesResult.map(row => ({

@@ -21,7 +21,6 @@ export const generateInvoice = api(
     const { salesOrderId, invoiceDate, dueDate, notes } = req;
 
     try {
-      // Check if sales order exists and is confirmed
       const salesOrderQuery = `
         SELECT so.*, c.name as customer_name 
         FROM sales_orders so
@@ -29,7 +28,7 @@ export const generateInvoice = api(
         WHERE so.id = $1
       `;
       
-      const salesOrderResult = await salesDB.query(salesOrderQuery, [salesOrderId]);
+      const salesOrderResult = await salesDB.rawQueryAll(salesOrderQuery, salesOrderId);
       
       if (salesOrderResult.length === 0) {
         return {
@@ -51,14 +50,13 @@ export const generateInvoice = api(
         };
       }
 
-      // Check if invoice already exists for this sales order
       const existingInvoiceQuery = `
         SELECT id, invoice_number 
         FROM invoices 
         WHERE sales_order_id = $1
       `;
       
-      const existingInvoiceResult = await salesDB.query(existingInvoiceQuery, [salesOrderId]);
+      const existingInvoiceResult = await salesDB.rawQueryAll(existingInvoiceQuery, salesOrderId);
       
       if (existingInvoiceResult.length > 0) {
         return {
@@ -69,23 +67,20 @@ export const generateInvoice = api(
         };
       }
 
-      // Generate invoice number
       const invoiceNumberQuery = `
         SELECT COALESCE(MAX(CAST(SUBSTRING(invoice_number FROM 4) AS INTEGER)), 0) + 1 as next_number
         FROM invoices 
         WHERE invoice_number ~ '^INV[0-9]+$'
       `;
       
-      const invoiceNumberResult = await salesDB.query(invoiceNumberQuery);
-      const nextNumber = invoiceNumberResult[0]?.next_number || 1;
+      const invoiceNumberResult = await salesDB.rawQueryRow(invoiceNumberQuery);
+      const nextNumber = invoiceNumberResult?.next_number || 1;
       const invoiceNumber = `INV${nextNumber.toString().padStart(6, '0')}`;
 
-      // Set default dates
       const currentDate = new Date().toISOString().split('T')[0];
       const finalInvoiceDate = invoiceDate || currentDate;
       const finalDueDate = dueDate || salesOrder.due_date || currentDate;
 
-      // Create invoice
       const createInvoiceQuery = `
         INSERT INTO invoices (
           invoice_number, sales_order_id, customer_id, invoice_date, due_date,
@@ -94,7 +89,7 @@ export const generateInvoice = api(
         RETURNING id
       `;
 
-      const invoiceResult = await salesDB.query(createInvoiceQuery, [
+      const invoiceResult = await salesDB.rawQueryRow(createInvoiceQuery, 
         invoiceNumber,
         salesOrderId,
         salesOrder.customer_id,
@@ -105,11 +100,10 @@ export const generateInvoice = api(
         salesOrder.discount_amount,
         salesOrder.total_amount,
         notes || ''
-      ]);
+      );
 
-      const invoiceId = invoiceResult[0].id;
+      const invoiceId = invoiceResult!.id;
 
-      // Copy sales order items to invoice items
       const copyItemsQuery = `
         INSERT INTO invoice_items (
           invoice_id, product_id, product_sku, product_name,
@@ -122,16 +116,15 @@ export const generateInvoice = api(
         WHERE sales_order_id = $2
       `;
 
-      await salesDB.query(copyItemsQuery, [invoiceId, salesOrderId]);
+      await salesDB.rawExec(copyItemsQuery, invoiceId, salesOrderId);
 
-      // Update sales order status to 'shipped' if still 'confirmed'
       if (salesOrder.status === 'confirmed') {
         const updateOrderQuery = `
           UPDATE sales_orders 
           SET status = 'shipped', updated_at = NOW()
           WHERE id = $1
         `;
-        await salesDB.query(updateOrderQuery, [salesOrderId]);
+        await salesDB.rawExec(updateOrderQuery, salesOrderId);
       }
 
       return {
