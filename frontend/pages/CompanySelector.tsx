@@ -1,11 +1,13 @@
 import { useCompany } from '../contexts/CompanyContext';
+import { useAuth } from '../contexts/AuthContext';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Building2, CheckCircle2 } from 'lucide-react';
-import { Navigate } from 'react-router-dom';
+import { Building2, CheckCircle2, LogOut } from 'lucide-react';
+import { Navigate, Link } from 'react-router-dom';
 
 export default function CompanySelector() {
   const { companies, selectedCompany, setSelectedCompany, loading } = useCompany();
+  const { logout } = useAuth();
 
   // Jika sudah pilih company, redirect ke dashboard
   if (selectedCompany) {
@@ -32,6 +34,10 @@ export default function CompanySelector() {
           <p className="text-gray-600 mb-6">
             Anda belum memiliki akses ke perusahaan manapun. Silakan hubungi administrator untuk mendapatkan akses.
           </p>
+          <Button onClick={() => logout()} variant="outline" className="w-full">
+            <LogOut className="h-4 w-4 mr-2" />
+            Logout dan Login Ulang
+          </Button>
         </Card>
       </div>
     );
@@ -41,7 +47,13 @@ export default function CompanySelector() {
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-50 p-4">
       <div className="max-w-4xl w-full">
         <div className="text-center mb-8">
-          <Building2 className="w-20 h-20 mx-auto text-blue-600 mb-4" />
+          <div className="flex items-center justify-center gap-4 mb-4">
+            <Building2 className="w-20 h-20 text-blue-600" />
+            <Button onClick={() => logout()} variant="outline" size="sm">
+              <LogOut className="h-4 w-4 mr-2" />
+              Logout
+            </Button>
+          </div>
           <h1 className="text-4xl font-bold text-gray-900 mb-2">Pilih Perusahaan</h1>
           <p className="text-gray-600 text-lg">
             Pilih perusahaan yang ingin Anda kelola

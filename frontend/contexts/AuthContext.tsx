@@ -97,6 +97,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(null);
       setToken(null);
       localStorage.removeItem("auth_token");
+      localStorage.removeItem("selectedCompany");
       const newBackend = new Client(import.meta.env.VITE_CLIENT_TARGET, {
         requestInit: { credentials: "include" }
       });
