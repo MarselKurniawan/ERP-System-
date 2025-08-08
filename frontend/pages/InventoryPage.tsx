@@ -457,11 +457,11 @@ export default function InventoryPage() {
                   </div>
                   <div className="flex justify-between">
                     <span className="text-sm">Unit Price:</span>
-                    <span className="text-sm font-medium">${product.unitPrice.toFixed(2)}</span>
+                    <span className="text-sm font-medium">Rp. {product.unitPrice.toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-sm">Cost Price:</span>
-                    <span className="text-sm font-medium">${product.costPrice.toFixed(2)}</span>
+                    <span className="text-sm font-medium">Rp. {product.costPrice.toFixed(2)}</span>
                   </div>
                   {product.categoryName && (
                     <div className="flex justify-between">
