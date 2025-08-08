@@ -494,11 +494,11 @@ export default function AccountingPage() {
                     </div>
                     <div>
                       <span className="font-medium">Total Debit:</span>
-                      <p>${entry.totalDebit.toFixed(2)}</p>
+                      <p>Rp. {entry.totalDebit.toFixed(2)}</p>
                     </div>
                     <div>
                       <span className="font-medium">Total Credit:</span>
-                      <p>${entry.totalCredit.toFixed(2)}</p>
+                      <p>Rp. {entry.totalCredit.toFixed(2)}</p>
                     </div>
                     {entry.referenceType && (
                       <div>
