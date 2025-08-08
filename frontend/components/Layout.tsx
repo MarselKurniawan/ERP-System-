@@ -77,7 +77,7 @@ export default function Layout({ children }: LayoutProps) {
   const Sidebar = ({ mobile = false }: { mobile?: boolean }) => (
     <div className={cn("flex flex-col", mobile ? "h-full" : "h-screen")}>
       <div className="flex h-16 items-center px-6 border-b">
-        <BarChart3 className="h-8 w-8 text-blue-600" />
+        {/* <BarChart3 className="h-8 w-8 text-blue-600" /> */}
         <span className="ml-2 text-xl font-bold">IAR Phi </span>
       </div>
       <nav className="flex-1 space-y-1 px-4 py-4">
