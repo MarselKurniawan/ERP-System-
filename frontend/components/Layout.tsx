@@ -35,7 +35,7 @@ const navigation = [
   { name: "Purchasing", href: "/purchasing", icon: Truck },
   { name: "Accounting", href: "/accounting", icon: Calculator },
   { name: "Users", href: "/users", icon: Users },
-  { name: "Seed Data", href: "/seed", icon: Database },
+  // { name: "Seed Data", href: "/seed", icon: Database },
 ];
 
 interface LayoutProps {
