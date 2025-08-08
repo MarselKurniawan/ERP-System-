@@ -548,18 +548,18 @@ export default function AccountingPage() {
                         <span>{entry.accountCode} - {entry.accountName}</span>
                         <span>{getAccountTypeBadge(entry.accountType)}</span>
                         <span className="text-right">
-                          {entry.debitBalance > 0 ? `$${entry.debitBalance.toFixed(2)}` : '-'}
+                          {entry.debitBalance > 0 ? `Rp. ${entry.debitBalance.toFixed(2)}` : '-'}
                         </span>
                         <span className="text-right">
-                          {entry.creditBalance > 0 ? `$${entry.creditBalance.toFixed(2)}` : '-'}
+                          {entry.creditBalance > 0 ? `Rp. ${entry.creditBalance.toFixed(2)}` : '-'}
                         </span>
                       </div>
                     ))}
                     <div className="grid grid-cols-4 gap-4 p-3 bg-gray-100 font-bold text-sm border-t-2">
                       <span colSpan={2}>TOTALS</span>
                       <span></span>
-                      <span className="text-right">${trialBalance.totalDebits.toFixed(2)}</span>
-                      <span className="text-right">${trialBalance.totalCredits.toFixed(2)}</span>
+                      <span className="text-right">Rp. {trialBalance.totalDebits.toFixed(2)}</span>
+                      <span className="text-right">Rp. {trialBalance.totalCredits.toFixed(2)}</span>
                     </div>
                   </div>
                   
@@ -567,7 +567,7 @@ export default function AccountingPage() {
                     <div className="p-4 bg-red-50 border border-red-200 rounded">
                       <p className="text-red-800 font-medium">
                         Warning: Trial balance is not balanced! 
-                        Difference: ${Math.abs(trialBalance.totalDebits - trialBalance.totalCredits).toFixed(2)}
+                        Difference: Rp. {Math.abs(trialBalance.totalDebits - trialBalance.totalCredits).toFixed(2)}
                       </p>
                     </div>
                   )}
