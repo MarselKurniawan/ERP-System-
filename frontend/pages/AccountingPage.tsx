@@ -448,8 +448,8 @@ export default function AccountingPage() {
                         ))}
                         <div className="p-3 bg-gray-50 rounded">
                           <div className="flex justify-between text-sm font-medium">
-                            <span>Total Debits: ${journalData.lines.reduce((sum, line) => sum + (line.debitAmount || 0), 0).toFixed(2)}</span>
-                            <span>Total Credits: ${journalData.lines.reduce((sum, line) => sum + (line.creditAmount || 0), 0).toFixed(2)}</span>
+                            <span>Total Debits: Rp. {journalData.lines.reduce((sum, line) => sum + (line.debitAmount || 0), 0).toFixed(2)}</span>
+                            <span>Total Credits: Rp. {journalData.lines.reduce((sum, line) => sum + (line.creditAmount || 0), 0).toFixed(2)}</span>
                           </div>
                         </div>
                       </div>
