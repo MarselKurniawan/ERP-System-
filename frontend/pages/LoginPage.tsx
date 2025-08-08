@@ -85,7 +85,7 @@ export default function LoginPage() {
               </Button>
             </form>
 
-            <div className="mt-6 p-4 bg-gray-50 rounded-lg">
+            {/* <div className="mt-6 p-4 bg-gray-50 rounded-lg">
               <h3 className="text-sm font-medium text-gray-900 mb-2">Demo Accounts:</h3>
               <div className="text-xs text-gray-600 space-y-1">
                 <div><strong>Admin:</strong> admin@company.com / admin123</div>
@@ -95,7 +95,7 @@ export default function LoginPage() {
                 <div><strong>Purchasing:</strong> purchasing@company.com / purchasing123</div>
                 <div><strong>User:</strong> user@company.com / user123</div>
               </div>
-            </div>
+            </div> */}
           </CardContent>
         </Card>
       </div>
