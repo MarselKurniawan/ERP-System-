@@ -172,7 +172,7 @@ export default function Layout({ children }: LayoutProps) {
           {children}
         </main>
 				<footer>
-				Copyright @2023 - Marselisius
+				Copyright @2023 - Marselisius 
 				</footer>
       </div>
     </div>
