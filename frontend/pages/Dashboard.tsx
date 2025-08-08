@@ -77,7 +77,7 @@ export default function Dashboard() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              ${(totalSalesValue - totalPurchaseValue).toFixed(2)}
+              Rp. {(totalSalesValue - totalPurchaseValue).toFixed(2)}
             </div>
             <p className="text-xs text-muted-foreground">
               Sales minus purchases
