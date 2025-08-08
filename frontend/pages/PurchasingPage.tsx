@@ -570,11 +570,11 @@ export default function PurchasingPage() {
                     )}
                     <div>
                       <span className="font-medium">Subtotal:</span>
-                      <p>${order.subtotal.toFixed(2)}</p>
+                      <p>Rp. {order.subtotal.toFixed(2)}</p>
                     </div>
                     <div>
                       <span className="font-medium">Total:</span>
-                      <p className="font-bold">${order.totalAmount.toFixed(2)}</p>
+                      <p className="font-bold">Rp. {order.totalAmount.toFixed(2)}</p>
                     </div>
                   </div>
                 </CardContent>
