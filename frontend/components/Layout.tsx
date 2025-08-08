@@ -171,7 +171,7 @@ export default function Layout({ children }: LayoutProps) {
         <main className="flex-1 overflow-auto p-6 lg:p-8">
           {children}
         </main>
-				<footer className="flex items-center ">
+				<footer className="flex mx-auto">
 				Copyright @2023 - Marselisius 
 				</footer>
       </div>
