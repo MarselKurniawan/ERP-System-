@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Separator } from "@/components/ui/separator";
-import { FileText, Calculator, BarChart3, TrendingUp, Building, Clock, Wallet } from "lucide-react";
+import { FileText, Calculator, BarChart3, TrendingUp, Building, Clock, Wallet, AlertTriangle } from "lucide-react";
 import backend from "~backend/client";
 import { useToast } from "@/components/ui/use-toast";
 
@@ -92,6 +92,35 @@ interface CashBankData {
   asOfDate: string;
 }
 
+interface AgingPayablesData {
+  entries: Array<{
+    supplier_id: number;
+    supplier_name: string;
+    invoice_id: number;
+    invoice_number: string;
+    invoice_date: string;
+    due_date: string;
+    total_amount: number;
+    paid_amount: number;
+    balance_due: number;
+    days_overdue: number;
+    current: number;
+    days_1_30: number;
+    days_31_60: number;
+    days_61_90: number;
+    days_over_90: number;
+  }>;
+  summary: {
+    total_current: number;
+    total_1_30: number;
+    total_31_60: number;
+    total_61_90: number;
+    total_over_90: number;
+    grand_total: number;
+  };
+  as_of_date: string;
+}
+
 export default function ReportsPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [profitLossData, setProfitLossData] = useState<ProfitLossData | null>(null);
@@ -100,6 +129,7 @@ export default function ReportsPage() {
   const [salesReportData, setSalesReportData] = useState<any>(null);
   const [agingReceivablesData, setAgingReceivablesData] = useState<AgingReceivablesData | null>(null);
   const [cashBankData, setCashBankData] = useState<CashBankData | null>(null);
+  const [agingPayablesData, setAgingPayablesData] = useState<AgingPayablesData | null>(null);
   
   const [pnlStartDate, setPnlStartDate] = useState('');
   const [pnlEndDate, setPnlEndDate] = useState('');
@@ -110,6 +140,7 @@ export default function ReportsPage() {
   const [salesEndDate, setSalesEndDate] = useState('');
   const [agingDate, setAgingDate] = useState('');
   const [cashBankDate, setCashBankDate] = useState('');
+  const [agingPayablesDate, setAgingPayablesDate] = useState('');
 
   const { toast } = useToast();
 
@@ -235,6 +266,20 @@ export default function ReportsPage() {
     } catch (error) {
       console.error('Error generating cash/bank report:', error);
       toast({ title: "Error", description: "Failed to generate cash/bank report", variant: "destructive" });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const generateAgingPayablesReport = async () => {
+    setIsLoading(true);
+    try {
+      const data = await backend.purchasing.agingPayablesReport();
+      setAgingPayablesData(data);
+      toast({ title: "Success", description: "Aging payables report generated successfully" });
+    } catch (error) {
+      console.error('Error generating aging payables report:', error);
+      toast({ title: "Error", description: "Failed to generate aging payables report", variant: "destructive" });
     } finally {
       setIsLoading(false);
     }
@@ -520,6 +565,10 @@ export default function ReportsPage() {
           <TabsTrigger value="cash-bank" className="flex items-center gap-2">
             <Wallet className="h-4 w-4" />
             Kas/Bank
+          </TabsTrigger>
+          <TabsTrigger value="aging-payables" className="flex items-center gap-2">
+            <AlertTriangle className="h-4 w-4" />
+            Umur Hutang
           </TabsTrigger>
         </TabsList>
 
@@ -1028,6 +1077,107 @@ export default function ReportsPage() {
                       </div>
                     )}
                   </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="aging-payables">
+          <Card>
+            <CardHeader>
+              <CardTitle>Laporan Umur Hutang</CardTitle>
+              <CardDescription>Laporan hutang supplier yang belum dibayar berdasarkan jangka waktu</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <Button 
+                onClick={generateAgingPayablesReport} 
+                disabled={isLoading}
+                className="w-full"
+              >
+                <AlertTriangle className="mr-2 h-4 w-4" />
+                {isLoading ? "Generating..." : "Generate Laporan Umur Hutang"}
+              </Button>
+              
+              {agingPayablesData && (
+                <div className="mt-6 p-4 border rounded-lg">
+                  <div className="text-center mb-6">
+                    <h2 className="text-2xl font-bold">LAPORAN UMUR HUTANG</h2>
+                    <p className="text-sm text-muted-foreground">
+                      Per Tanggal: {agingPayablesData.as_of_date}
+                    </p>
+                  </div>
+
+                  <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
+                    <div className="p-3 bg-green-50 rounded">
+                      <p className="text-sm text-muted-foreground">Current</p>
+                      <p className="font-semibold">{formatCurrency(agingPayablesData.summary.total_current)}</p>
+                    </div>
+                    <div className="p-3 bg-yellow-50 rounded">
+                      <p className="text-sm text-muted-foreground">1-30 hari</p>
+                      <p className="font-semibold">{formatCurrency(agingPayablesData.summary.total_1_30)}</p>
+                    </div>
+                    <div className="p-3 bg-orange-50 rounded">
+                      <p className="text-sm text-muted-foreground">31-60 hari</p>
+                      <p className="font-semibold">{formatCurrency(agingPayablesData.summary.total_31_60)}</p>
+                    </div>
+                    <div className="p-3 bg-red-50 rounded">
+                      <p className="text-sm text-muted-foreground">61-90 hari</p>
+                      <p className="font-semibold">{formatCurrency(agingPayablesData.summary.total_61_90)}</p>
+                    </div>
+                    <div className="p-3 bg-red-100 rounded">
+                      <p className="text-sm text-muted-foreground">&gt;90 hari</p>
+                      <p className="font-semibold">{formatCurrency(agingPayablesData.summary.total_over_90)}</p>
+                    </div>
+                  </div>
+
+                  <div className="mb-4 p-4 bg-blue-50 rounded">
+                    <div className="flex justify-between font-bold text-lg">
+                      <span>Total Hutang</span>
+                      <span>{formatCurrency(agingPayablesData.summary.grand_total)}</span>
+                    </div>
+                  </div>
+
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Invoice</TableHead>
+                        <TableHead>Supplier</TableHead>
+                        <TableHead>Tgl Invoice</TableHead>
+                        <TableHead>Tgl Jatuh Tempo</TableHead>
+                        <TableHead>Total</TableHead>
+                        <TableHead>Terbayar</TableHead>
+                        <TableHead>Sisa</TableHead>
+                        <TableHead>Hari Lewat</TableHead>
+                        <TableHead>Current</TableHead>
+                        <TableHead>1-30</TableHead>
+                        <TableHead>31-60</TableHead>
+                        <TableHead>61-90</TableHead>
+                        <TableHead>&gt;90</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {agingPayablesData.entries.map((entry) => (
+                        <TableRow key={entry.invoice_id}>
+                          <TableCell>{entry.invoice_number}</TableCell>
+                          <TableCell>{entry.supplier_name}</TableCell>
+                          <TableCell>{entry.invoice_date}</TableCell>
+                          <TableCell>{entry.due_date}</TableCell>
+                          <TableCell>{formatCurrency(entry.total_amount)}</TableCell>
+                          <TableCell>{formatCurrency(entry.paid_amount)}</TableCell>
+                          <TableCell className="font-semibold text-red-600">{formatCurrency(entry.balance_due)}</TableCell>
+                          <TableCell className={entry.days_overdue > 0 ? "text-red-600 font-semibold" : ""}>
+                            {entry.days_overdue}
+                          </TableCell>
+                          <TableCell>{entry.current > 0 ? formatCurrency(entry.current) : '-'}</TableCell>
+                          <TableCell>{entry.days_1_30 > 0 ? formatCurrency(entry.days_1_30) : '-'}</TableCell>
+                          <TableCell>{entry.days_31_60 > 0 ? formatCurrency(entry.days_31_60) : '-'}</TableCell>
+                          <TableCell>{entry.days_61_90 > 0 ? formatCurrency(entry.days_61_90) : '-'}</TableCell>
+                          <TableCell>{entry.days_over_90 > 0 ? formatCurrency(entry.days_over_90) : '-'}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
                 </div>
               )}
             </CardContent>

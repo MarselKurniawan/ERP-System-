@@ -581,12 +581,16 @@ export namespace inventory {
 /**
  * Import the endpoint handlers to derive the types for the client.
  */
+import { agingPayablesReport as api_purchasing_aging_payables_report_agingPayablesReport } from "~backend/purchasing/aging_payables_report";
 import { createPurchaseOrder as api_purchasing_create_purchase_order_createPurchaseOrder } from "~backend/purchasing/create_purchase_order";
 import { createSupplier as api_purchasing_create_supplier_createSupplier } from "~backend/purchasing/create_supplier";
+import { createSupplierInvoice as api_purchasing_create_supplier_invoice_createSupplierInvoice } from "~backend/purchasing/create_supplier_invoice";
 import { deletePurchaseOrder as api_purchasing_delete_purchase_order_deletePurchaseOrder } from "~backend/purchasing/delete_purchase_order";
 import { deleteSupplier as api_purchasing_delete_supplier_deleteSupplier } from "~backend/purchasing/delete_supplier";
 import { listPurchaseOrders as api_purchasing_list_purchase_orders_listPurchaseOrders } from "~backend/purchasing/list_purchase_orders";
+import { listSupplierInvoices as api_purchasing_list_supplier_invoices_listSupplierInvoices } from "~backend/purchasing/list_supplier_invoices";
 import { listSuppliers as api_purchasing_list_suppliers_listSuppliers } from "~backend/purchasing/list_suppliers";
+import { paySupplierInvoice as api_purchasing_pay_supplier_invoice_paySupplierInvoice } from "~backend/purchasing/pay_supplier_invoice";
 import { seedPurchasing as api_purchasing_seed_data_seedPurchasing } from "~backend/purchasing/seed_data";
 import { updatePurchaseOrder as api_purchasing_update_purchase_order_updatePurchaseOrder } from "~backend/purchasing/update_purchase_order";
 import { updateSupplier as api_purchasing_update_supplier_updateSupplier } from "~backend/purchasing/update_supplier";
@@ -598,15 +602,25 @@ export namespace purchasing {
 
         constructor(baseClient: BaseClient) {
             this.baseClient = baseClient
+            this.agingPayablesReport = this.agingPayablesReport.bind(this)
             this.createPurchaseOrder = this.createPurchaseOrder.bind(this)
             this.createSupplier = this.createSupplier.bind(this)
+            this.createSupplierInvoice = this.createSupplierInvoice.bind(this)
             this.deletePurchaseOrder = this.deletePurchaseOrder.bind(this)
             this.deleteSupplier = this.deleteSupplier.bind(this)
             this.listPurchaseOrders = this.listPurchaseOrders.bind(this)
+            this.listSupplierInvoices = this.listSupplierInvoices.bind(this)
             this.listSuppliers = this.listSuppliers.bind(this)
+            this.paySupplierInvoice = this.paySupplierInvoice.bind(this)
             this.seedPurchasing = this.seedPurchasing.bind(this)
             this.updatePurchaseOrder = this.updatePurchaseOrder.bind(this)
             this.updateSupplier = this.updateSupplier.bind(this)
+        }
+
+        public async agingPayablesReport(): Promise<ResponseType<typeof api_purchasing_aging_payables_report_agingPayablesReport>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/purchasing/aging-payables-report`, {method: "GET", body: undefined})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_purchasing_aging_payables_report_agingPayablesReport>
         }
 
         /**
@@ -627,6 +641,12 @@ export namespace purchasing {
             return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_purchasing_create_supplier_createSupplier>
         }
 
+        public async createSupplierInvoice(params: RequestType<typeof api_purchasing_create_supplier_invoice_createSupplierInvoice>): Promise<ResponseType<typeof api_purchasing_create_supplier_invoice_createSupplierInvoice>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/purchasing/supplier-invoices`, {method: "POST", body: JSON.stringify(params)})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_purchasing_create_supplier_invoice_createSupplierInvoice>
+        }
+
         public async deletePurchaseOrder(params: { id: number }): Promise<void> {
             await this.baseClient.callTypedAPI(`/purchase-orders/${encodeURIComponent(params.id)}`, {method: "DELETE", body: undefined})
         }
@@ -644,6 +664,12 @@ export namespace purchasing {
             return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_purchasing_list_purchase_orders_listPurchaseOrders>
         }
 
+        public async listSupplierInvoices(): Promise<ResponseType<typeof api_purchasing_list_supplier_invoices_listSupplierInvoices>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/purchasing/supplier-invoices`, {method: "GET", body: undefined})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_purchasing_list_supplier_invoices_listSupplierInvoices>
+        }
+
         /**
          * Retrieves all active suppliers.
          */
@@ -651,6 +677,22 @@ export namespace purchasing {
             // Now make the actual call to the API
             const resp = await this.baseClient.callTypedAPI(`/suppliers`, {method: "GET", body: undefined})
             return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_purchasing_list_suppliers_listSuppliers>
+        }
+
+        public async paySupplierInvoice(params: RequestType<typeof api_purchasing_pay_supplier_invoice_paySupplierInvoice>): Promise<ResponseType<typeof api_purchasing_pay_supplier_invoice_paySupplierInvoice>> {
+            // Construct the body with only the fields which we want encoded within the body (excluding query string or header fields)
+            const body: Record<string, any> = {
+                amount:             params.amount,
+                "bank_account_id":  params["bank_account_id"],
+                notes:              params.notes,
+                "payment_date":     params["payment_date"],
+                "payment_method":   params["payment_method"],
+                "reference_number": params["reference_number"],
+            }
+
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/purchasing/supplier-invoices/${encodeURIComponent(params.id)}/pay`, {method: "POST", body: JSON.stringify(body)})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_purchasing_pay_supplier_invoice_paySupplierInvoice>
         }
 
         /**

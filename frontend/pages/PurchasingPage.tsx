@@ -9,16 +9,22 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/components/ui/use-toast";
-import { Plus, Truck, Building, Trash2, Edit } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Plus, Truck, Building, Trash2, Edit, FileText, DollarSign } from "lucide-react";
 import backend from "~backend/client";
 import type { CreateSupplierRequest } from "~backend/purchasing/create_supplier";
 import type { CreatePurchaseOrderRequest, PurchaseOrderItem } from "~backend/purchasing/create_purchase_order";
 import type { UpdateSupplierRequest } from "~backend/purchasing/update_supplier";
 import type { UpdatePurchaseOrderRequest } from "~backend/purchasing/update_purchase_order";
+import type { CreateSupplierInvoiceRequest, SupplierInvoiceItem } from "~backend/purchasing/create_supplier_invoice";
+import type { PaySupplierInvoiceRequest } from "~backend/purchasing/pay_supplier_invoice";
 
 export default function PurchasingPage() {
   const [showSupplierForm, setShowSupplierForm] = useState(false);
   const [showOrderForm, setShowOrderForm] = useState(false);
+  const [showInvoiceForm, setShowInvoiceForm] = useState(false);
+  const [showPaymentDialog, setShowPaymentDialog] = useState(false);
+  const [selectedInvoice, setSelectedInvoice] = useState<any>(null);
   const [editingSupplier, setEditingSupplier] = useState<any>(null);
   const [supplierData, setSupplierData] = useState<CreateSupplierRequest>({
     name: "",
@@ -45,6 +51,28 @@ export default function PurchasingPage() {
     unitPrice: 0,
     discountAmount: 0,
   });
+  const [invoiceData, setInvoiceData] = useState<CreateSupplierInvoiceRequest>({
+    supplier_id: 0,
+    invoice_number: "",
+    invoice_date: new Date().toISOString().split('T')[0],
+    due_date: new Date().toISOString().split('T')[0],
+    items: [],
+    tax_amount: 0,
+    notes: "",
+  });
+  const [currentInvoiceItem, setCurrentInvoiceItem] = useState<SupplierInvoiceItem>({
+    description: "",
+    quantity: 1,
+    unit_price: 0,
+  });
+  const [paymentData, setPaymentData] = useState<PaySupplierInvoiceRequest>({
+    id: 0,
+    payment_date: new Date().toISOString().split('T')[0],
+    amount: 0,
+    payment_method: "cash",
+    reference_number: "",
+    notes: "",
+  });
 
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -62,6 +90,11 @@ export default function PurchasingPage() {
   const { data: products } = useQuery({
     queryKey: ["products"],
     queryFn: () => backend.inventory.listProducts(),
+  });
+
+  const { data: supplierInvoices } = useQuery({
+    queryKey: ["supplier-invoices"],
+    queryFn: () => backend.purchasing.listSupplierInvoices(),
   });
 
   const createSupplierMutation = useMutation({
@@ -185,6 +218,48 @@ export default function PurchasingPage() {
     },
   });
 
+  const createInvoiceMutation = useMutation({
+    mutationFn: (data: CreateSupplierInvoiceRequest) => backend.purchasing.createSupplierInvoice(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["supplier-invoices"] });
+      setShowInvoiceForm(false);
+      resetInvoiceForm();
+      toast({
+        title: "Success",
+        description: "Supplier invoice created successfully",
+      });
+    },
+    onError: (error) => {
+      console.error("Error creating supplier invoice:", error);
+      toast({
+        title: "Error",
+        description: "Failed to create supplier invoice",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const payInvoiceMutation = useMutation({
+    mutationFn: (data: PaySupplierInvoiceRequest) => backend.purchasing.paySupplierInvoice(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["supplier-invoices"] });
+      setShowPaymentDialog(false);
+      setSelectedInvoice(null);
+      toast({
+        title: "Success",
+        description: "Payment recorded successfully",
+      });
+    },
+    onError: (error) => {
+      console.error("Error recording payment:", error);
+      toast({
+        title: "Error",
+        description: "Failed to record payment",
+        variant: "destructive",
+      });
+    },
+  });
+
   const resetSupplierForm = () => {
     setSupplierData({
       name: "",
@@ -205,6 +280,23 @@ export default function PurchasingPage() {
       taxRate: 0,
       discountAmount: 0,
       notes: "",
+    });
+  };
+
+  const resetInvoiceForm = () => {
+    setInvoiceData({
+      supplier_id: 0,
+      invoice_number: "",
+      invoice_date: new Date().toISOString().split('T')[0],
+      due_date: new Date().toISOString().split('T')[0],
+      items: [],
+      tax_amount: 0,
+      notes: "",
+    });
+    setCurrentInvoiceItem({
+      description: "",
+      quantity: 1,
+      unit_price: 0,
     });
   };
 
@@ -310,6 +402,76 @@ export default function PurchasingPage() {
     }
   };
 
+  const handleInvoiceProductSelect = (productId: string) => {
+    const product = products?.products.find(p => p.id === parseInt(productId));
+    if (product) {
+      setCurrentInvoiceItem({
+        ...currentInvoiceItem,
+        product_id: product.id,
+        description: product.name,
+        unit_price: product.costPrice,
+      });
+    }
+  };
+
+  const handleInvoiceSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (invoiceData.items.length === 0) {
+      toast({
+        title: "Error",
+        description: "Please add at least one item to the invoice",
+        variant: "destructive",
+      });
+      return;
+    }
+    createInvoiceMutation.mutate(invoiceData);
+  };
+
+  const addInvoiceItem = () => {
+    if (!currentInvoiceItem.description || currentInvoiceItem.quantity <= 0) {
+      toast({
+        title: "Error",
+        description: "Please enter item description and valid quantity",
+        variant: "destructive",
+      });
+      return;
+    }
+    setInvoiceData({
+      ...invoiceData,
+      items: [...invoiceData.items, { ...currentInvoiceItem }],
+    });
+    setCurrentInvoiceItem({
+      description: "",
+      quantity: 1,
+      unit_price: 0,
+    });
+  };
+
+  const removeInvoiceItem = (index: number) => {
+    setInvoiceData({
+      ...invoiceData,
+      items: invoiceData.items.filter((_, i) => i !== index),
+    });
+  };
+
+  const handlePaymentSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    payInvoiceMutation.mutate(paymentData);
+  };
+
+  const openPaymentDialog = (invoice: any) => {
+    setSelectedInvoice(invoice);
+    setPaymentData({
+      id: invoice.id,
+      payment_date: new Date().toISOString().split('T')[0],
+      amount: invoice.balance_due,
+      payment_method: "cash",
+      reference_number: "",
+      notes: "",
+    });
+    setShowPaymentDialog(true);
+  };
+
   const getStatusBadge = (status: string) => {
     const variants: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
       draft: "secondary",
@@ -331,6 +493,7 @@ export default function PurchasingPage() {
       <Tabs defaultValue="orders" className="space-y-4">
         <TabsList>
           <TabsTrigger value="orders">Purchase Orders</TabsTrigger>
+          <TabsTrigger value="invoices">Supplier Invoices</TabsTrigger>
           <TabsTrigger value="suppliers">Suppliers</TabsTrigger>
         </TabsList>
 
@@ -582,6 +745,338 @@ export default function PurchasingPage() {
             ))}
           </div>
         </TabsContent>
+
+        <TabsContent value="invoices" className="space-y-4">
+          <div className="flex justify-between items-center">
+            <h2 className="text-xl font-semibold">Supplier Invoices</h2>
+            <Button onClick={() => { setShowInvoiceForm(true); resetInvoiceForm(); }}>
+              <Plus className="mr-2 h-4 w-4" />
+              Create Invoice
+            </Button>
+          </div>
+
+          {showInvoiceForm && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Create Supplier Invoice</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <form onSubmit={handleInvoiceSubmit} className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <Label>Supplier *</Label>
+                      <Select
+                        value={invoiceData.supplier_id.toString()}
+                        onValueChange={(value) => setInvoiceData({ ...invoiceData, supplier_id: parseInt(value) })}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select supplier" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {suppliers?.suppliers.map((supplier) => (
+                            <SelectItem key={supplier.id} value={supplier.id.toString()}>
+                              {supplier.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label>Invoice Number *</Label>
+                      <Input
+                        value={invoiceData.invoice_number}
+                        onChange={(e) => setInvoiceData({ ...invoiceData, invoice_number: e.target.value })}
+                        required
+                      />
+                    </div>
+                    <div>
+                      <Label>Invoice Date *</Label>
+                      <Input
+                        type="date"
+                        value={invoiceData.invoice_date}
+                        onChange={(e) => setInvoiceData({ ...invoiceData, invoice_date: e.target.value })}
+                        required
+                      />
+                    </div>
+                    <div>
+                      <Label>Due Date *</Label>
+                      <Input
+                        type="date"
+                        value={invoiceData.due_date}
+                        onChange={(e) => setInvoiceData({ ...invoiceData, due_date: e.target.value })}
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-medium">Invoice Items</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-5 gap-4 p-4 border rounded">
+                      <div>
+                        <Label>Product (Optional)</Label>
+                        <Select
+                          value={currentInvoiceItem.product_id?.toString() || ""}
+                          onValueChange={handleInvoiceProductSelect}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select product" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {products?.products.map((product) => (
+                              <SelectItem key={product.id} value={product.id.toString()}>
+                                {product.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div>
+                        <Label>Description *</Label>
+                        <Input
+                          value={currentInvoiceItem.description}
+                          onChange={(e) => setCurrentInvoiceItem({ ...currentInvoiceItem, description: e.target.value })}
+                        />
+                      </div>
+                      <div>
+                        <Label>Quantity *</Label>
+                        <Input
+                          type="number"
+                          min="1"
+                          step="0.01"
+                          value={currentInvoiceItem.quantity}
+                          onChange={(e) => setCurrentInvoiceItem({ ...currentInvoiceItem, quantity: parseFloat(e.target.value) || 1 })}
+                        />
+                      </div>
+                      <div>
+                        <Label>Unit Price *</Label>
+                        <Input
+                          type="number"
+                          step="0.01"
+                          value={currentInvoiceItem.unit_price}
+                          onChange={(e) => setCurrentInvoiceItem({ ...currentInvoiceItem, unit_price: parseFloat(e.target.value) || 0 })}
+                        />
+                      </div>
+                      <div className="flex items-end">
+                        <Button type="button" onClick={addInvoiceItem}>
+                          Add Item
+                        </Button>
+                      </div>
+                    </div>
+
+                    {invoiceData.items.length > 0 && (
+                      <div className="space-y-2">
+                        {invoiceData.items.map((item, index) => (
+                          <div key={index} className="flex items-center justify-between p-3 border rounded">
+                            <div className="flex-1">
+                              <span className="font-medium">{item.description}</span>
+                            </div>
+                            <div className="text-sm">
+                              {item.quantity} × Rp. {item.unit_price.toFixed(2)} = Rp. {(item.quantity * item.unit_price).toFixed(2)}
+                            </div>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => removeInvoiceItem(index)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <Label>Tax Amount</Label>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        value={invoiceData.tax_amount}
+                        onChange={(e) => setInvoiceData({ ...invoiceData, tax_amount: parseFloat(e.target.value) || 0 })}
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <Label>Notes</Label>
+                    <Textarea
+                      value={invoiceData.notes}
+                      onChange={(e) => setInvoiceData({ ...invoiceData, notes: e.target.value })}
+                    />
+                  </div>
+
+                  <div className="flex space-x-2">
+                    <Button type="submit" disabled={createInvoiceMutation.isPending}>
+                      {createInvoiceMutation.isPending ? "Creating..." : "Create Invoice"}
+                    </Button>
+                    <Button type="button" variant="outline" onClick={() => setShowInvoiceForm(false)}>
+                      Cancel
+                    </Button>
+                  </div>
+                </form>
+              </CardContent>
+            </Card>
+          )}
+
+          <div className="grid grid-cols-1 gap-4">
+            {supplierInvoices?.invoices.map((invoice) => (
+              <Card key={invoice.id}>
+                <CardHeader>
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <CardTitle className="flex items-center">
+                        <FileText className="mr-2 h-5 w-5" />
+                        {invoice.invoice_number}
+                      </CardTitle>
+                      <p className="text-sm text-gray-600">Supplier: {invoice.supplier_name}</p>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Badge variant={invoice.status === 'paid' ? 'default' : invoice.status === 'partial' ? 'secondary' : 'destructive'}>
+                        {invoice.status}
+                      </Badge>
+                      {invoice.balance_due > 0 && (
+                        <Button
+                          size="sm"
+                          onClick={() => openPaymentDialog(invoice)}
+                        >
+                          <DollarSign className="mr-1 h-4 w-4" />
+                          Pay
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm mb-4">
+                    <div>
+                      <span className="font-medium">Invoice Date:</span>
+                      <p>{new Date(invoice.invoice_date).toLocaleDateString()}</p>
+                    </div>
+                    <div>
+                      <span className="font-medium">Due Date:</span>
+                      <p>{new Date(invoice.due_date).toLocaleDateString()}</p>
+                    </div>
+                    <div>
+                      <span className="font-medium">Total:</span>
+                      <p>Rp. {invoice.total_amount.toFixed(2)}</p>
+                    </div>
+                    <div>
+                      <span className="font-medium">Balance Due:</span>
+                      <p className="font-bold text-red-600">Rp. {invoice.balance_due.toFixed(2)}</p>
+                    </div>
+                  </div>
+
+                  {invoice.items.length > 0 && (
+                    <div className="mt-4">
+                      <h4 className="font-medium mb-2">Items:</h4>
+                      <div className="space-y-1">
+                        {invoice.items.map((item) => (
+                          <div key={item.id} className="text-sm flex justify-between">
+                            <span>{item.description}</span>
+                            <span>{item.quantity} × Rp. {item.unit_price.toFixed(2)} = Rp. {item.total_price.toFixed(2)}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {invoice.payments.length > 0 && (
+                    <div className="mt-4">
+                      <h4 className="font-medium mb-2">Payments:</h4>
+                      <div className="space-y-1">
+                        {invoice.payments.map((payment) => (
+                          <div key={payment.id} className="text-sm flex justify-between">
+                            <span>{new Date(payment.payment_date).toLocaleDateString()} - {payment.payment_method}</span>
+                            <span className="font-medium">Rp. {payment.amount.toFixed(2)}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </TabsContent>
+
+        <Dialog open={showPaymentDialog} onOpenChange={setShowPaymentDialog}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Record Payment</DialogTitle>
+            </DialogHeader>
+            <form onSubmit={handlePaymentSubmit} className="space-y-4">
+              <div>
+                <Label>Invoice Number</Label>
+                <Input value={selectedInvoice?.invoice_number || ""} disabled />
+              </div>
+              <div>
+                <Label>Balance Due</Label>
+                <Input value={`Rp. ${selectedInvoice?.balance_due.toFixed(2) || 0}`} disabled />
+              </div>
+              <div>
+                <Label>Payment Date *</Label>
+                <Input
+                  type="date"
+                  value={paymentData.payment_date}
+                  onChange={(e) => setPaymentData({ ...paymentData, payment_date: e.target.value })}
+                  required
+                />
+              </div>
+              <div>
+                <Label>Amount *</Label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  max={selectedInvoice?.balance_due || 0}
+                  value={paymentData.amount}
+                  onChange={(e) => setPaymentData({ ...paymentData, amount: parseFloat(e.target.value) || 0 })}
+                  required
+                />
+              </div>
+              <div>
+                <Label>Payment Method *</Label>
+                <Select
+                  value={paymentData.payment_method}
+                  onValueChange={(value) => setPaymentData({ ...paymentData, payment_method: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="cash">Cash</SelectItem>
+                    <SelectItem value="bank_transfer">Bank Transfer</SelectItem>
+                    <SelectItem value="check">Check</SelectItem>
+                    <SelectItem value="credit_card">Credit Card</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Reference Number</Label>
+                <Input
+                  value={paymentData.reference_number}
+                  onChange={(e) => setPaymentData({ ...paymentData, reference_number: e.target.value })}
+                />
+              </div>
+              <div>
+                <Label>Notes</Label>
+                <Textarea
+                  value={paymentData.notes}
+                  onChange={(e) => setPaymentData({ ...paymentData, notes: e.target.value })}
+                />
+              </div>
+              <div className="flex space-x-2">
+                <Button type="submit" disabled={payInvoiceMutation.isPending}>
+                  {payInvoiceMutation.isPending ? "Processing..." : "Record Payment"}
+                </Button>
+                <Button type="button" variant="outline" onClick={() => setShowPaymentDialog(false)}>
+                  Cancel
+                </Button>
+              </div>
+            </form>
+          </DialogContent>
+        </Dialog>
 
         <TabsContent value="suppliers" className="space-y-4">
           <div className="flex justify-between items-center">
