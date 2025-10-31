@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Separator } from "@/components/ui/separator";
-import { FileText, Calculator, BarChart3, TrendingUp, Building } from "lucide-react";
+import { FileText, Calculator, BarChart3, TrendingUp, Building, Clock, Wallet } from "lucide-react";
 import backend from "~backend/client";
 import { useToast } from "@/components/ui/use-toast";
 
@@ -31,18 +31,63 @@ interface ProfitLossData {
 interface BalanceSheetData {
   assets: {
     currentAssets: Array<{ accountCode: string; accountName: string; amount: number }>;
+    totalCurrentAssets: number;
     fixedAssets: Array<{ accountCode: string; accountName: string; amount: number }>;
+    depreciation: Array<{ accountCode: string; accountName: string; amount: number }>;
+    totalFixedAssets: number;
     totalAssets: number;
   };
   liabilities: {
-    currentLiabilities: Array<{ accountCode: string; accountName: string; amount: number }>;
-    longTermLiabilities: Array<{ accountCode: string; accountName: string; amount: number }>;
+    shortTerm: Array<{ accountCode: string; accountName: string; amount: number }>;
+    longTerm: Array<{ accountCode: string; accountName: string; amount: number }>;
     totalLiabilities: number;
   };
   equity: {
-    equityItems: Array<{ accountCode: string; accountName: string; amount: number }>;
-    retainedEarnings: number;
+    capital: Array<{ accountCode: string; accountName: string; amount: number }>;
+    openingBalance: Array<{ accountCode: string; accountName: string; amount: number }>;
+    currentYearEarnings: number;
+    priorYearEarnings: number;
     totalEquity: number;
+  };
+  totalPassiva: number;
+  asOfDate: string;
+}
+
+interface AgingReceivablesData {
+  items: Array<{
+    invoiceNumber: string;
+    customerName: string;
+    invoiceDate: string;
+    dueDate: string;
+    totalAmount: number;
+    paidAmount: number;
+    remainingAmount: number;
+    daysPastDue: number;
+    paymentTerms: number;
+    agingCategory: string;
+  }>;
+  summary: {
+    current: number;
+    days30: number;
+    days60: number;
+    days90: number;
+    over90: number;
+    totalReceivables: number;
+  };
+  asOfDate: string;
+}
+
+interface CashBankData {
+  cash: Array<{ accountCode: string; accountName: string; balance: number; category: string }>;
+  bank: Array<{ accountCode: string; accountName: string; balance: number; category: string }>;
+  giro: Array<{ accountCode: string; accountName: string; balance: number; category: string }>;
+  other: Array<{ accountCode: string; accountName: string; balance: number; category: string }>;
+  summary: {
+    totalCash: number;
+    totalBank: number;
+    totalGiro: number;
+    totalOther: number;
+    grandTotal: number;
   };
   asOfDate: string;
 }
@@ -53,6 +98,8 @@ export default function ReportsPage() {
   const [balanceSheetData, setBalanceSheetData] = useState<BalanceSheetData | null>(null);
   const [generalLedgerData, setGeneralLedgerData] = useState<any>(null);
   const [salesReportData, setSalesReportData] = useState<any>(null);
+  const [agingReceivablesData, setAgingReceivablesData] = useState<AgingReceivablesData | null>(null);
+  const [cashBankData, setCashBankData] = useState<CashBankData | null>(null);
   
   const [pnlStartDate, setPnlStartDate] = useState('');
   const [pnlEndDate, setPnlEndDate] = useState('');
@@ -61,6 +108,8 @@ export default function ReportsPage() {
   const [glEndDate, setGlEndDate] = useState('');
   const [salesStartDate, setSalesStartDate] = useState('');
   const [salesEndDate, setSalesEndDate] = useState('');
+  const [agingDate, setAgingDate] = useState('');
+  const [cashBankDate, setCashBankDate] = useState('');
 
   const { toast } = useToast();
 
@@ -154,6 +203,38 @@ export default function ReportsPage() {
     } catch (error) {
       console.error('Error generating sales report:', error);
       toast({ title: "Error", description: "Failed to generate sales report", variant: "destructive" });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const generateAgingReceivablesReport = async () => {
+    setIsLoading(true);
+    try {
+      const data = await backend.sales.agingReceivablesReport({
+        asOfDate: agingDate || undefined
+      });
+      setAgingReceivablesData(data);
+      toast({ title: "Success", description: "Aging receivables report generated successfully" });
+    } catch (error) {
+      console.error('Error generating aging receivables report:', error);
+      toast({ title: "Error", description: "Failed to generate aging receivables report", variant: "destructive" });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const generateCashBankReport = async () => {
+    setIsLoading(true);
+    try {
+      const data = await backend.accounting.cashBankReport({
+        asOfDate: cashBankDate || undefined
+      });
+      setCashBankData(data);
+      toast({ title: "Success", description: "Cash/Bank report generated successfully" });
+    } catch (error) {
+      console.error('Error generating cash/bank report:', error);
+      toast({ title: "Error", description: "Failed to generate cash/bank report", variant: "destructive" });
     } finally {
       setIsLoading(false);
     }
@@ -302,6 +383,10 @@ export default function ReportsPage() {
                   <span>{formatCurrency(item.amount)}</span>
                 </div>
               ))}
+              <div className="flex justify-between font-semibold py-1 px-4 border-t mt-2">
+                <span>Total Aktiva Lancar</span>
+                <span>{formatCurrency(balanceSheetData.assets.totalCurrentAssets)}</span>
+              </div>
               
               <h4 className="font-semibold pt-4">Aktiva Tetap</h4>
               {balanceSheetData.assets.fixedAssets.map(item => (
@@ -310,8 +395,18 @@ export default function ReportsPage() {
                   <span>{formatCurrency(item.amount)}</span>
                 </div>
               ))}
+              {balanceSheetData.assets.depreciation.map(item => (
+                <div key={item.accountCode} className="flex justify-between py-1 px-4">
+                  <span>{item.accountCode} - {item.accountName}</span>
+                  <span>({formatCurrency(Math.abs(item.amount))})</span>
+                </div>
+              ))}
+              <div className="flex justify-between font-semibold py-1 px-4 border-t mt-2">
+                <span>Total Aktiva Tetap</span>
+                <span>{formatCurrency(balanceSheetData.assets.totalFixedAssets)}</span>
+              </div>
               
-              <Separator />
+              <Separator className="border-2" />
               <div className="flex justify-between font-bold">
                 <span>TOTAL AKTIVA</span>
                 <span>{formatCurrency(balanceSheetData.assets.totalAssets)}</span>
@@ -323,50 +418,66 @@ export default function ReportsPage() {
             <h3 className="font-bold text-lg mb-4">PASIVA</h3>
             
             <div className="space-y-2">
-              <h4 className="font-semibold">Kewajiban Lancar</h4>
-              {balanceSheetData.liabilities.currentLiabilities.map(item => (
+              <h4 className="font-semibold">Hutang Jangka Pendek</h4>
+              {balanceSheetData.liabilities.shortTerm.map(item => (
                 <div key={item.accountCode} className="flex justify-between py-1 px-4">
                   <span>{item.accountCode} - {item.accountName}</span>
                   <span>{formatCurrency(item.amount)}</span>
                 </div>
               ))}
               
-              <h4 className="font-semibold pt-4">Kewajiban Jangka Panjang</h4>
-              {balanceSheetData.liabilities.longTermLiabilities.map(item => (
+              <h4 className="font-semibold pt-4">Hutang Jangka Panjang</h4>
+              {balanceSheetData.liabilities.longTerm.map(item => (
                 <div key={item.accountCode} className="flex justify-between py-1 px-4">
                   <span>{item.accountCode} - {item.accountName}</span>
                   <span>{formatCurrency(item.amount)}</span>
                 </div>
               ))}
               
-              <div className="flex justify-between font-semibold pt-2">
-                <span>Total Kewajiban</span>
+              <div className="flex justify-between font-semibold py-1 px-4 border-t mt-2">
+                <span>Total Hutang</span>
                 <span>{formatCurrency(balanceSheetData.liabilities.totalLiabilities)}</span>
               </div>
 
-              <h4 className="font-semibold pt-4">Modal</h4>
-              {balanceSheetData.equity.equityItems.map(item => (
+              <h4 className="font-semibold pt-4">Modal Pemilik</h4>
+              {balanceSheetData.equity.capital.map(item => (
                 <div key={item.accountCode} className="flex justify-between py-1 px-4">
                   <span>{item.accountCode} - {item.accountName}</span>
                   <span>{formatCurrency(item.amount)}</span>
                 </div>
               ))}
-              <div className="flex justify-between py-1 px-4">
-                <span>Laba Ditahan</span>
-                <span className={balanceSheetData.equity.retainedEarnings >= 0 ? "text-green-600" : "text-red-600"}>
-                  {formatCurrency(balanceSheetData.equity.retainedEarnings)}
-                </span>
-              </div>
+              {balanceSheetData.equity.openingBalance.map(item => (
+                <div key={item.accountCode} className="flex justify-between py-1 px-4">
+                  <span>{item.accountCode} - {item.accountName}</span>
+                  <span>{formatCurrency(item.amount)}</span>
+                </div>
+              ))}
+              {balanceSheetData.equity.priorYearEarnings !== 0 && (
+                <div className="flex justify-between py-1 px-4">
+                  <span>Laba Tahun Sebelumnya</span>
+                  <span className={balanceSheetData.equity.priorYearEarnings >= 0 ? "text-green-600" : "text-red-600"}>
+                    {formatCurrency(balanceSheetData.equity.priorYearEarnings)}
+                  </span>
+                </div>
+              )}
+              {balanceSheetData.equity.currentYearEarnings !== 0 && (
+                <div className="flex justify-between py-1 px-4">
+                  <span>Laba Periode Berjalan</span>
+                  <span className={balanceSheetData.equity.currentYearEarnings >= 0 ? "text-green-600" : "text-red-600"}>
+                    {formatCurrency(balanceSheetData.equity.currentYearEarnings)}
+                  </span>
+                </div>
+              )}
               
-              <div className="flex justify-between font-semibold pt-2">
-                <span>Total Modal</span>
+              <div className="flex justify-between font-semibold py-1 px-4 border-t mt-2">
+                <span>Total Modal Pemilik</span>
                 <span>{formatCurrency(balanceSheetData.equity.totalEquity)}</span>
               </div>
               
-              <Separator />
+              <Separator className="border-2" />
               <div className="flex justify-between font-bold">
                 <span>TOTAL PASIVA</span>
-                <span>{formatCurrency(balanceSheetData.liabilities.totalLiabilities + balanceSheetData.equity.totalEquity)}</span>
+                <span>{formatCurrency(balanceSheetData.totalPassiva)}</span>
               </div>
             </div>
           </div>
@@ -385,7 +496,7 @@ export default function ReportsPage() {
       </div>
 
       <Tabs defaultValue="profit-loss" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-6">
           <TabsTrigger value="profit-loss" className="flex items-center gap-2">
             <TrendingUp className="h-4 w-4" />
             Laba Rugi
@@ -401,6 +512,14 @@ export default function ReportsPage() {
           <TabsTrigger value="sales-report" className="flex items-center gap-2">
             <BarChart3 className="h-4 w-4" />
             Penjualan
+          </TabsTrigger>
+          <TabsTrigger value="aging-receivables" className="flex items-center gap-2">
+            <Clock className="h-4 w-4" />
+            Umur Piutang
+          </TabsTrigger>
+          <TabsTrigger value="cash-bank" className="flex items-center gap-2">
+            <Wallet className="h-4 w-4" />
+            Kas/Bank
           </TabsTrigger>
         </TabsList>
 
@@ -632,6 +751,283 @@ export default function ReportsPage() {
                       ))}
                     </TableBody>
                   </Table>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="aging-receivables">
+          <Card>
+            <CardHeader>
+              <CardTitle>Laporan Umur Piutang</CardTitle>
+              <CardDescription>Laporan piutang yang belum dibayar berdasarkan jangka waktu</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <Label htmlFor="aging-date">Per Tanggal (opsional)</Label>
+                <Input
+                  id="aging-date"
+                  type="date"
+                  value={agingDate}
+                  onChange={(e) => setAgingDate(e.target.value)}
+                />
+              </div>
+              <Button 
+                onClick={generateAgingReceivablesReport} 
+                disabled={isLoading}
+                className="w-full"
+              >
+                <Clock className="mr-2 h-4 w-4" />
+                {isLoading ? "Generating..." : "Generate Laporan Umur Piutang"}
+              </Button>
+              
+              {agingReceivablesData && (
+                <div className="mt-6 p-4 border rounded-lg">
+                  <div className="text-center mb-6">
+                    <h2 className="text-2xl font-bold">LAPORAN UMUR PIUTANG</h2>
+                    <p className="text-sm text-muted-foreground">
+                      Per Tanggal: {agingReceivablesData.asOfDate}
+                    </p>
+                  </div>
+
+                  <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
+                    <div className="p-3 bg-green-50 rounded">
+                      <p className="text-sm text-muted-foreground">Current</p>
+                      <p className="font-semibold">{formatCurrency(agingReceivablesData.summary.current)}</p>
+                    </div>
+                    <div className="p-3 bg-yellow-50 rounded">
+                      <p className="text-sm text-muted-foreground">1-30 hari</p>
+                      <p className="font-semibold">{formatCurrency(agingReceivablesData.summary.days30)}</p>
+                    </div>
+                    <div className="p-3 bg-orange-50 rounded">
+                      <p className="text-sm text-muted-foreground">31-60 hari</p>
+                      <p className="font-semibold">{formatCurrency(agingReceivablesData.summary.days60)}</p>
+                    </div>
+                    <div className="p-3 bg-red-50 rounded">
+                      <p className="text-sm text-muted-foreground">61-90 hari</p>
+                      <p className="font-semibold">{formatCurrency(agingReceivablesData.summary.days90)}</p>
+                    </div>
+                    <div className="p-3 bg-red-100 rounded">
+                      <p className="text-sm text-muted-foreground">&gt;90 hari</p>
+                      <p className="font-semibold">{formatCurrency(agingReceivablesData.summary.over90)}</p>
+                    </div>
+                  </div>
+
+                  <div className="mb-4 p-4 bg-blue-50 rounded">
+                    <div className="flex justify-between font-bold text-lg">
+                      <span>Total Piutang</span>
+                      <span>{formatCurrency(agingReceivablesData.summary.totalReceivables)}</span>
+                    </div>
+                  </div>
+
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Invoice</TableHead>
+                        <TableHead>Customer</TableHead>
+                        <TableHead>Tgl Invoice</TableHead>
+                        <TableHead>Tgl Jatuh Tempo</TableHead>
+                        <TableHead>Termin</TableHead>
+                        <TableHead>Total</TableHead>
+                        <TableHead>Terbayar</TableHead>
+                        <TableHead>Sisa</TableHead>
+                        <TableHead>Hari Lewat</TableHead>
+                        <TableHead>Kategori</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {agingReceivablesData.items.map((item) => (
+                        <TableRow key={item.invoiceNumber}>
+                          <TableCell>{item.invoiceNumber}</TableCell>
+                          <TableCell>{item.customerName}</TableCell>
+                          <TableCell>{item.invoiceDate}</TableCell>
+                          <TableCell>{item.dueDate}</TableCell>
+                          <TableCell>{item.paymentTerms} hari</TableCell>
+                          <TableCell>{formatCurrency(item.totalAmount)}</TableCell>
+                          <TableCell>{formatCurrency(item.paidAmount)}</TableCell>
+                          <TableCell className="font-semibold">{formatCurrency(item.remainingAmount)}</TableCell>
+                          <TableCell className={item.daysPastDue > 0 ? "text-red-600 font-semibold" : ""}>
+                            {item.daysPastDue}
+                          </TableCell>
+                          <TableCell>
+                            <span className={`px-2 py-1 rounded text-xs ${
+                              item.agingCategory === 'Current' ? 'bg-green-100 text-green-800' :
+                              item.agingCategory === '1-30 days' ? 'bg-yellow-100 text-yellow-800' :
+                              item.agingCategory === '31-60 days' ? 'bg-orange-100 text-orange-800' :
+                              item.agingCategory === '61-90 days' ? 'bg-red-100 text-red-800' :
+                              'bg-red-200 text-red-900'
+                            }`}>
+                              {item.agingCategory}
+                            </span>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="cash-bank">
+          <Card>
+            <CardHeader>
+              <CardTitle>Laporan Kas & Bank</CardTitle>
+              <CardDescription>Laporan saldo kas, bank, dan giro</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <Label htmlFor="cash-bank-date">Per Tanggal (opsional)</Label>
+                <Input
+                  id="cash-bank-date"
+                  type="date"
+                  value={cashBankDate}
+                  onChange={(e) => setCashBankDate(e.target.value)}
+                />
+              </div>
+              <Button 
+                onClick={generateCashBankReport} 
+                disabled={isLoading}
+                className="w-full"
+              >
+                <Wallet className="mr-2 h-4 w-4" />
+                {isLoading ? "Generating..." : "Generate Laporan Kas & Bank"}
+              </Button>
+              
+              {cashBankData && (
+                <div className="mt-6 p-4 border rounded-lg">
+                  <div className="text-center mb-6">
+                    <h2 className="text-2xl font-bold">LAPORAN KAS & BANK</h2>
+                    <p className="text-sm text-muted-foreground">
+                      Per Tanggal: {cashBankData.asOfDate}
+                    </p>
+                  </div>
+
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                    <div className="p-3 bg-green-50 rounded">
+                      <p className="text-sm text-muted-foreground">Kas</p>
+                      <p className="font-semibold">{formatCurrency(cashBankData.summary.totalCash)}</p>
+                    </div>
+                    <div className="p-3 bg-blue-50 rounded">
+                      <p className="text-sm text-muted-foreground">Bank</p>
+                      <p className="font-semibold">{formatCurrency(cashBankData.summary.totalBank)}</p>
+                    </div>
+                    <div className="p-3 bg-purple-50 rounded">
+                      <p className="text-sm text-muted-foreground">Giro</p>
+                      <p className="font-semibold">{formatCurrency(cashBankData.summary.totalGiro)}</p>
+                    </div>
+                    <div className="p-3 bg-yellow-50 rounded">
+                      <p className="text-sm text-muted-foreground">Lainnya</p>
+                      <p className="font-semibold">{formatCurrency(cashBankData.summary.totalOther)}</p>
+                    </div>
+                  </div>
+
+                  <div className="mb-6 p-4 bg-blue-50 rounded">
+                    <div className="flex justify-between font-bold text-lg">
+                      <span>Total Keseluruhan</span>
+                      <span>{formatCurrency(cashBankData.summary.grandTotal)}</span>
+                    </div>
+                  </div>
+
+                  <div className="space-y-6">
+                    {cashBankData.cash.length > 0 && (
+                      <div>
+                        <h3 className="font-semibold text-lg mb-2">Kas</h3>
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>Kode Akun</TableHead>
+                              <TableHead>Nama Akun</TableHead>
+                              <TableHead className="text-right">Saldo</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {cashBankData.cash.map((item) => (
+                              <TableRow key={item.accountCode}>
+                                <TableCell>{item.accountCode}</TableCell>
+                                <TableCell>{item.accountName}</TableCell>
+                                <TableCell className="text-right font-semibold">{formatCurrency(item.balance)}</TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    )}
+
+                    {cashBankData.bank.length > 0 && (
+                      <div>
+                        <h3 className="font-semibold text-lg mb-2">Bank</h3>
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>Kode Akun</TableHead>
+                              <TableHead>Nama Akun</TableHead>
+                              <TableHead className="text-right">Saldo</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {cashBankData.bank.map((item) => (
+                              <TableRow key={item.accountCode}>
+                                <TableCell>{item.accountCode}</TableCell>
+                                <TableCell>{item.accountName}</TableCell>
+                                <TableCell className="text-right font-semibold">{formatCurrency(item.balance)}</TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    )}
+
+                    {cashBankData.giro.length > 0 && (
+                      <div>
+                        <h3 className="font-semibold text-lg mb-2">Giro</h3>
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>Kode Akun</TableHead>
+                              <TableHead>Nama Akun</TableHead>
+                              <TableHead className="text-right">Saldo</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {cashBankData.giro.map((item) => (
+                              <TableRow key={item.accountCode}>
+                                <TableCell>{item.accountCode}</TableCell>
+                                <TableCell>{item.accountName}</TableCell>
+                                <TableCell className="text-right font-semibold">{formatCurrency(item.balance)}</TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    )}
+
+                    {cashBankData.other.length > 0 && (
+                      <div>
+                        <h3 className="font-semibold text-lg mb-2">Lainnya</h3>
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>Kode Akun</TableHead>
+                              <TableHead>Nama Akun</TableHead>
+                              <TableHead className="text-right">Saldo</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {cashBankData.other.map((item) => (
+                              <TableRow key={item.accountCode}>
+                                <TableCell>{item.accountCode}</TableCell>
+                                <TableCell>{item.accountName}</TableCell>
+                                <TableCell className="text-right font-semibold">{formatCurrency(item.balance)}</TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    )}
+                  </div>
                 </div>
               )}
             </CardContent>

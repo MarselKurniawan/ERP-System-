@@ -110,8 +110,8 @@ export const profitLossReport = api(
     // Total Pendapatan & Beban Lain = Pendapatan Lain - Beban Lain
     const totalPendapatanBebanLain = totalPendapatanLain - totalBebanLain;
 
-    // Laba Rugi Bersih = Laba Operasional + Total Pendapatan & Beban Lain
-    const labaRugiBersih = labaOperasional + totalPendapatanBebanLain;
+    // Laba Rugi Bersih = Laba Operasional - Total Pendapatan & Beban Lain
+    const labaRugiBersih = labaOperasional - totalPendapatanBebanLain;
 
     return {
       pendapatanUsaha,

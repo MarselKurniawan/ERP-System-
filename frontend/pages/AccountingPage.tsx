@@ -152,7 +152,7 @@ export default function AccountingPage() {
       return;
     }
 
-    if (currentLine.debitAmount > 0 && currentLine.creditAmount > 0) {
+    if ((currentLine.debitAmount || 0) > 0 && (currentLine.creditAmount || 0) > 0) {
       toast({
         title: "Error",
         description: "A line can have either a debit or credit amount, not both",
@@ -430,10 +430,10 @@ export default function AccountingPage() {
                               )}
                             </div>
                             <div className="text-sm">
-                              {line.debitAmount > 0 ? (
-                                <span className="text-green-600">Dr: ${line.debitAmount.toFixed(2)}</span>
+                              {(line.debitAmount || 0) > 0 ? (
+                                <span className="text-green-600">Dr: ${(line.debitAmount || 0).toFixed(2)}</span>
                               ) : (
-                                <span className="text-red-600">Cr: ${line.creditAmount.toFixed(2)}</span>
+                                <span className="text-red-600">Cr: ${(line.creditAmount || 0).toFixed(2)}</span>
                               )}
                             </div>
                             <Button
@@ -556,7 +556,7 @@ export default function AccountingPage() {
                       </div>
                     ))}
                     <div className="grid grid-cols-4 gap-4 p-3 bg-gray-100 font-bold text-sm border-t-2">
-                      <span colSpan={2}>TOTALS</span>
+                      <span>TOTALS</span>
                       <span></span>
                       <span className="text-right">Rp. {trialBalance.totalDebits.toFixed(2)}</span>
                       <span className="text-right">Rp. {trialBalance.totalCredits.toFixed(2)}</span>

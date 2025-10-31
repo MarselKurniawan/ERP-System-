@@ -482,7 +482,7 @@ export default function SalesPage() {
                               <span className="text-sm text-gray-500 ml-2">({item.productSku})</span>
                             </div>
                             <div className="text-sm">
-                              {item.quantity} × ${item.unitPrice.toFixed(2)} = ${((item.quantity * item.unitPrice) - item.discountAmount).toFixed(2)}
+                              {item.quantity} × ${item.unitPrice.toFixed(2)} = ${((item.quantity * item.unitPrice) - (item.discountAmount || 0)).toFixed(2)}
                             </div>
                             <Button
                               type="button"

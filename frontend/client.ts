@@ -93,6 +93,7 @@ export interface ClientOptions {
  * Import the endpoint handlers to derive the types for the client.
  */
 import { balanceSheetReport as api_accounting_balance_sheet_report_balanceSheetReport } from "~backend/accounting/balance_sheet_report";
+import { cashBankReport as api_accounting_cash_bank_report_cashBankReport } from "~backend/accounting/cash_bank_report";
 import { createAccount as api_accounting_create_account_createAccount } from "~backend/accounting/create_account";
 import { createJournalEntry as api_accounting_create_journal_entry_createJournalEntry } from "~backend/accounting/create_journal_entry";
 import { deleteAccount as api_accounting_delete_account_deleteAccount } from "~backend/accounting/delete_account";
@@ -113,6 +114,7 @@ export namespace accounting {
         constructor(baseClient: BaseClient) {
             this.baseClient = baseClient
             this.balanceSheetReport = this.balanceSheetReport.bind(this)
+            this.cashBankReport = this.cashBankReport.bind(this)
             this.createAccount = this.createAccount.bind(this)
             this.createJournalEntry = this.createJournalEntry.bind(this)
             this.deleteAccount = this.deleteAccount.bind(this)
@@ -130,6 +132,12 @@ export namespace accounting {
             // Now make the actual call to the API
             const resp = await this.baseClient.callTypedAPI(`/accounting/reports/balance-sheet`, {method: "POST", body: JSON.stringify(params)})
             return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_accounting_balance_sheet_report_balanceSheetReport>
+        }
+
+        public async cashBankReport(params: RequestType<typeof api_accounting_cash_bank_report_cashBankReport>): Promise<ResponseType<typeof api_accounting_cash_bank_report_cashBankReport>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/accounting/reports/cash-bank`, {method: "POST", body: JSON.stringify(params)})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_accounting_cash_bank_report_cashBankReport>
         }
 
         /**
@@ -694,6 +702,7 @@ export namespace purchasing {
 /**
  * Import the endpoint handlers to derive the types for the client.
  */
+import { agingReceivablesReport as api_sales_aging_receivables_report_agingReceivablesReport } from "~backend/sales/aging_receivables_report";
 import { createCustomer as api_sales_create_customer_createCustomer } from "~backend/sales/create_customer";
 import { createOrder as api_sales_create_order_createOrder } from "~backend/sales/create_order";
 import { deleteCustomer as api_sales_delete_customer_deleteCustomer } from "~backend/sales/delete_customer";
@@ -716,6 +725,7 @@ export namespace sales {
 
         constructor(baseClient: BaseClient) {
             this.baseClient = baseClient
+            this.agingReceivablesReport = this.agingReceivablesReport.bind(this)
             this.createCustomer = this.createCustomer.bind(this)
             this.createOrder = this.createOrder.bind(this)
             this.deleteCustomer = this.deleteCustomer.bind(this)
@@ -730,6 +740,12 @@ export namespace sales {
             this.updateCustomer = this.updateCustomer.bind(this)
             this.updateInvoice = this.updateInvoice.bind(this)
             this.updateOrder = this.updateOrder.bind(this)
+        }
+
+        public async agingReceivablesReport(params: RequestType<typeof api_sales_aging_receivables_report_agingReceivablesReport>): Promise<ResponseType<typeof api_sales_aging_receivables_report_agingReceivablesReport>> {
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/sales/reports/aging-receivables`, {method: "POST", body: JSON.stringify(params)})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_sales_aging_receivables_report_agingReceivablesReport>
         }
 
         /**
