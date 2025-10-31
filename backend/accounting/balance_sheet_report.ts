@@ -36,36 +36,61 @@ export const balanceSheetReport = api(
   async (req: BalanceSheetRequest): Promise<BalanceSheetReport> => {
     const { asOfDate } = req;
 
-    const accountBalanceQuery = `
+    // Query untuk akun 1 (Assets)
+    const assetsQuery = `
       SELECT 
         a.account_code,
         a.account_name,
-        a.account_type,
-        COALESCE(
-          CASE 
-            WHEN a.account_type IN ('asset', 'expense') THEN SUM(jel.debit_amount - jel.credit_amount)
-            ELSE SUM(jel.credit_amount - jel.debit_amount)
-          END, 0
-        ) as balance
+        COALESCE(SUM(jel.debit_amount - jel.credit_amount), 0) as balance
       FROM chart_of_accounts a
       LEFT JOIN journal_entry_lines jel ON a.id = jel.account_id
       LEFT JOIN journal_entries je ON jel.journal_entry_id = je.id
-      WHERE a.account_type = $1
-        AND je.entry_date <= $2
+      WHERE a.account_code LIKE '1%'
+        AND je.entry_date <= $1
         AND je.status = 'posted'
         AND a.is_active = true
-      GROUP BY a.id, a.account_code, a.account_name, a.account_type
-      HAVING COALESCE(
-        CASE 
-          WHEN a.account_type IN ('asset', 'expense') THEN SUM(jel.debit_amount - jel.credit_amount)
-          ELSE SUM(jel.credit_amount - jel.debit_amount)
-        END, 0
-      ) != 0
+      GROUP BY a.id, a.account_code, a.account_name
+      HAVING COALESCE(SUM(jel.debit_amount - jel.credit_amount), 0) != 0
       ORDER BY a.account_code
     `;
 
-    const assetsResult = await accountingDB.rawQueryAll(accountBalanceQuery, 'asset', asOfDate);
-    
+    // Query untuk akun 2 (Liabilities)
+    const liabilitiesQuery = `
+      SELECT 
+        a.account_code,
+        a.account_name,
+        COALESCE(SUM(jel.credit_amount - jel.debit_amount), 0) as balance
+      FROM chart_of_accounts a
+      LEFT JOIN journal_entry_lines jel ON a.id = jel.account_id
+      LEFT JOIN journal_entries je ON jel.journal_entry_id = je.id
+      WHERE a.account_code LIKE '2%'
+        AND je.entry_date <= $1
+        AND je.status = 'posted'
+        AND a.is_active = true
+      GROUP BY a.id, a.account_code, a.account_name
+      HAVING COALESCE(SUM(jel.credit_amount - jel.debit_amount), 0) != 0
+      ORDER BY a.account_code
+    `;
+
+    // Query untuk akun 3 (Equity)
+    const equityQuery = `
+      SELECT 
+        a.account_code,
+        a.account_name,
+        COALESCE(SUM(jel.credit_amount - jel.debit_amount), 0) as balance
+      FROM chart_of_accounts a
+      LEFT JOIN journal_entry_lines jel ON a.id = jel.account_id
+      LEFT JOIN journal_entries je ON jel.journal_entry_id = je.id
+      WHERE a.account_code LIKE '3%'
+        AND je.entry_date <= $1
+        AND je.status = 'posted'
+        AND a.is_active = true
+      GROUP BY a.id, a.account_code, a.account_name
+      HAVING COALESCE(SUM(jel.credit_amount - jel.debit_amount), 0) != 0
+      ORDER BY a.account_code
+    `;
+
+    const assetsResult = await accountingDB.rawQueryAll(assetsQuery, asOfDate);
     const currentAssets: BalanceSheetItem[] = [];
     const fixedAssets: BalanceSheetItem[] = [];
     
@@ -76,6 +101,7 @@ export const balanceSheetReport = api(
         amount: parseFloat(row.balance)
       };
       
+      // Current assets: 10xx-14xx, Fixed assets: 15xx+
       if (row.account_code.startsWith('1') && parseInt(row.account_code) < 1500) {
         currentAssets.push(item);
       } else {
@@ -85,8 +111,7 @@ export const balanceSheetReport = api(
 
     const totalAssets = [...currentAssets, ...fixedAssets].reduce((sum, item) => sum + item.amount, 0);
 
-    const liabilitiesResult = await accountingDB.rawQueryAll(accountBalanceQuery, 'liability', asOfDate);
-    
+    const liabilitiesResult = await accountingDB.rawQueryAll(liabilitiesQuery, asOfDate);
     const currentLiabilities: BalanceSheetItem[] = [];
     const longTermLiabilities: BalanceSheetItem[] = [];
     
@@ -97,6 +122,7 @@ export const balanceSheetReport = api(
         amount: parseFloat(row.balance)
       };
       
+      // Current liabilities: 20xx-22xx, Long-term: 23xx+
       if (row.account_code.startsWith('2') && parseInt(row.account_code) < 2300) {
         currentLiabilities.push(item);
       } else {
@@ -106,20 +132,21 @@ export const balanceSheetReport = api(
 
     const totalLiabilities = [...currentLiabilities, ...longTermLiabilities].reduce((sum, item) => sum + item.amount, 0);
 
-    const equityResult = await accountingDB.rawQueryAll(accountBalanceQuery, 'equity', asOfDate);
+    const equityResult = await accountingDB.rawQueryAll(equityQuery, asOfDate);
     const equityItems: BalanceSheetItem[] = equityResult.map(row => ({
       accountCode: row.account_code,
       accountName: row.account_name,
       amount: parseFloat(row.balance)
     }));
 
+    // Hitung Laba Bersih dari akun 4-8 (P&L accounts)
     const retainedEarningsQuery = `
       SELECT 
         COALESCE(
           SUM(
             CASE 
-              WHEN a.account_type = 'revenue' THEN jel.credit_amount - jel.debit_amount
-              WHEN a.account_type = 'expense' THEN jel.debit_amount - jel.credit_amount
+              WHEN a.account_code LIKE '4%' OR a.account_code LIKE '7%' THEN jel.credit_amount - jel.debit_amount
+              WHEN a.account_code LIKE '5%' OR a.account_code LIKE '6%' OR a.account_code LIKE '8%' THEN jel.debit_amount - jel.credit_amount
               ELSE 0
             END
           ), 0
@@ -127,7 +154,7 @@ export const balanceSheetReport = api(
       FROM chart_of_accounts a
       LEFT JOIN journal_entry_lines jel ON a.id = jel.account_id
       LEFT JOIN journal_entries je ON jel.journal_entry_id = je.id
-      WHERE a.account_type IN ('revenue', 'expense')
+      WHERE (a.account_code LIKE '4%' OR a.account_code LIKE '5%' OR a.account_code LIKE '6%' OR a.account_code LIKE '7%' OR a.account_code LIKE '8%')
         AND je.entry_date <= $1
         AND je.status = 'posted'
         AND a.is_active = true

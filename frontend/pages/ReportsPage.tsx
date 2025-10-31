@@ -6,20 +6,25 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Separator } from "@/components/ui/separator";
-import { FileText, Download, Calculator, BarChart3, TrendingUp, Building } from "lucide-react";
+import { FileText, Calculator, BarChart3, TrendingUp, Building } from "lucide-react";
 import backend from "~backend/client";
 import { useToast } from "@/components/ui/use-toast";
 
 interface ProfitLossData {
-  pendapatan: Array<{ accountCode: string; accountName: string; amount: number }>;
-  hpp: Array<{ accountCode: string; accountName: string; amount: number }>;
-  pendapatanBersih: number;
-  biayaOperasional: Array<{ accountCode: string; accountName: string; amount: number }>;
-  pendapatanOperasional: number;
+  pendapatanUsaha: Array<{ accountCode: string; accountName: string; amount: number }>;
+  totalPendapatanUsaha: number;
+  bebanPokokPendapatan: Array<{ accountCode: string; accountName: string; amount: number }>;
+  totalBebanPokok: number;
+  labaKotor: number;
+  bebanOperasional: Array<{ accountCode: string; accountName: string; amount: number }>;
+  totalBebanOperasional: number;
+  labaOperasional: number;
   pendapatanLain: Array<{ accountCode: string; accountName: string; amount: number }>;
+  totalPendapatanLain: number;
   bebanLain: Array<{ accountCode: string; accountName: string; amount: number }>;
-  pendapatanLainLain: number;
-  labaBersih: number;
+  totalBebanLain: number;
+  totalPendapatanBebanLain: number;
+  labaRugiBersih: number;
   periode: { startDate: string; endDate: string };
 }
 
@@ -160,91 +165,112 @@ export default function ReportsPage() {
     return (
       <div className="space-y-6">
         <div className="text-center">
-          <h2 className="text-2xl font-bold">Laporan Laba Rugi</h2>
+          <h2 className="text-2xl font-bold">LAPORAN LABA RUGI</h2>
           <p className="text-sm text-muted-foreground">
             Periode: {profitLossData.periode.startDate} s/d {profitLossData.periode.endDate}
           </p>
         </div>
 
         <div className="space-y-4">
-          {/* Pendapatan */}
           <div>
-            <h3 className="font-semibold text-lg">4. PENDAPATAN</h3>
-            {profitLossData.pendapatan.map(item => (
+            <h3 className="font-semibold text-lg">PENDAPATAN USAHA</h3>
+            {profitLossData.pendapatanUsaha.map(item => (
               <div key={item.accountCode} className="flex justify-between py-1 px-4">
                 <span>{item.accountCode} - {item.accountName}</span>
                 <span>{formatCurrency(item.amount)}</span>
               </div>
             ))}
+            <div className="flex justify-between font-semibold py-1 px-4 border-t mt-2">
+              <span>Total Pendapatan Usaha</span>
+              <span>{formatCurrency(profitLossData.totalPendapatanUsaha)}</span>
+            </div>
           </div>
 
-          {/* HPP */}
           <div>
-            <h3 className="font-semibold text-lg">5. HARGA POKOK PENJUALAN</h3>
-            {profitLossData.hpp.map(item => (
+            <h3 className="font-semibold text-lg">BEBAN POKOK PENDAPATAN</h3>
+            {profitLossData.bebanPokokPendapatan.map(item => (
               <div key={item.accountCode} className="flex justify-between py-1 px-4">
                 <span>{item.accountCode} - {item.accountName}</span>
                 <span>({formatCurrency(item.amount)})</span>
               </div>
             ))}
+            <div className="flex justify-between font-semibold py-1 px-4 border-t mt-2">
+              <span>Total Beban Pokok Pendapatan</span>
+              <span>({formatCurrency(profitLossData.totalBebanPokok)})</span>
+            </div>
           </div>
 
-          <Separator />
-          <div className="flex justify-between font-semibold">
-            <span>PENDAPATAN BERSIH</span>
-            <span>{formatCurrency(profitLossData.pendapatanBersih)}</span>
+          <Separator className="border-2" />
+          <div className="flex justify-between font-bold text-lg px-4">
+            <span>LABA KOTOR</span>
+            <span className={profitLossData.labaKotor >= 0 ? "text-green-600" : "text-red-600"}>
+              {formatCurrency(profitLossData.labaKotor)}
+            </span>
           </div>
 
-          {/* Biaya Operasional */}
           <div>
-            <h3 className="font-semibold text-lg">6. BIAYA OPERASIONAL</h3>
-            {profitLossData.biayaOperasional.map(item => (
+            <h3 className="font-semibold text-lg">BEBAN OPERASIONAL</h3>
+            {profitLossData.bebanOperasional.map(item => (
               <div key={item.accountCode} className="flex justify-between py-1 px-4">
                 <span>{item.accountCode} - {item.accountName}</span>
                 <span>({formatCurrency(item.amount)})</span>
               </div>
             ))}
+            <div className="flex justify-between font-semibold py-1 px-4 border-t mt-2">
+              <span>Total Beban Operasional</span>
+              <span>({formatCurrency(profitLossData.totalBebanOperasional)})</span>
+            </div>
           </div>
 
-          <Separator />
-          <div className="flex justify-between font-semibold">
-            <span>PENDAPATAN OPERASIONAL</span>
-            <span>{formatCurrency(profitLossData.pendapatanOperasional)}</span>
+          <Separator className="border-2" />
+          <div className="flex justify-between font-bold text-lg px-4">
+            <span>LABA OPERASIONAL</span>
+            <span className={profitLossData.labaOperasional >= 0 ? "text-green-600" : "text-red-600"}>
+              {formatCurrency(profitLossData.labaOperasional)}
+            </span>
           </div>
 
-          {/* Pendapatan Lain */}
           <div>
-            <h3 className="font-semibold text-lg">7. PENDAPATAN LAIN-LAIN</h3>
+            <h3 className="font-semibold text-lg">PENDAPATAN LAIN</h3>
             {profitLossData.pendapatanLain.map(item => (
               <div key={item.accountCode} className="flex justify-between py-1 px-4">
                 <span>{item.accountCode} - {item.accountName}</span>
                 <span>{formatCurrency(item.amount)}</span>
               </div>
             ))}
+            <div className="flex justify-between font-semibold py-1 px-4 border-t mt-2">
+              <span>Total Pendapatan Lain</span>
+              <span>{formatCurrency(profitLossData.totalPendapatanLain)}</span>
+            </div>
           </div>
 
-          {/* Beban Lain */}
           <div>
-            <h3 className="font-semibold text-lg">8. BEBAN LAIN-LAIN</h3>
+            <h3 className="font-semibold text-lg">BEBAN LAIN</h3>
             {profitLossData.bebanLain.map(item => (
               <div key={item.accountCode} className="flex justify-between py-1 px-4">
                 <span>{item.accountCode} - {item.accountName}</span>
                 <span>({formatCurrency(item.amount)})</span>
               </div>
             ))}
+            <div className="flex justify-between font-semibold py-1 px-4 border-t mt-2">
+              <span>Total Beban Lain</span>
+              <span>({formatCurrency(profitLossData.totalBebanLain)})</span>
+            </div>
           </div>
 
           <Separator />
-          <div className="flex justify-between font-semibold">
-            <span>PENDAPATAN LAIN-LAIN BERSIH</span>
-            <span>{formatCurrency(profitLossData.pendapatanLainLain)}</span>
+          <div className="flex justify-between font-semibold px-4">
+            <span>Total Pendapatan & Beban Lain</span>
+            <span className={profitLossData.totalPendapatanBebanLain >= 0 ? "text-green-600" : "text-red-600"}>
+              {formatCurrency(profitLossData.totalPendapatanBebanLain)}
+            </span>
           </div>
 
-          <Separator className="border-2" />
-          <div className="flex justify-between font-bold text-lg">
-            <span>LABA BERSIH</span>
-            <span className={profitLossData.labaBersih >= 0 ? "text-green-600" : "text-red-600"}>
-              {formatCurrency(profitLossData.labaBersih)}
+          <Separator className="border-4" />
+          <div className="flex justify-between font-bold text-xl px-4 bg-blue-50 py-3 rounded">
+            <span>LABA RUGI BERSIH</span>
+            <span className={profitLossData.labaRugiBersih >= 0 ? "text-green-600" : "text-red-600"}>
+              {formatCurrency(profitLossData.labaRugiBersih)}
             </span>
           </div>
         </div>
@@ -265,7 +291,6 @@ export default function ReportsPage() {
         </div>
 
         <div className="grid md:grid-cols-2 gap-6">
-          {/* Assets */}
           <div>
             <h3 className="font-bold text-lg mb-4">AKTIVA</h3>
             
@@ -294,7 +319,6 @@ export default function ReportsPage() {
             </div>
           </div>
 
-          {/* Liabilities & Equity */}
           <div>
             <h3 className="font-bold text-lg mb-4">PASIVA</h3>
             
@@ -329,7 +353,9 @@ export default function ReportsPage() {
               ))}
               <div className="flex justify-between py-1 px-4">
                 <span>Laba Ditahan</span>
-                <span>{formatCurrency(balanceSheetData.equity.retainedEarnings)}</span>
+                <span className={balanceSheetData.equity.retainedEarnings >= 0 ? "text-green-600" : "text-red-600"}>
+                  {formatCurrency(balanceSheetData.equity.retainedEarnings)}
+                </span>
               </div>
               
               <div className="flex justify-between font-semibold pt-2">
@@ -362,32 +388,32 @@ export default function ReportsPage() {
         <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="profit-loss" className="flex items-center gap-2">
             <TrendingUp className="h-4 w-4" />
-            P&L Report
+            Laba Rugi
           </TabsTrigger>
           <TabsTrigger value="balance-sheet" className="flex items-center gap-2">
             <Building className="h-4 w-4" />
-            Balance Sheet
+            Neraca
           </TabsTrigger>
           <TabsTrigger value="general-ledger" className="flex items-center gap-2">
             <FileText className="h-4 w-4" />
-            General Ledger
+            Buku Besar
           </TabsTrigger>
           <TabsTrigger value="sales-report" className="flex items-center gap-2">
             <BarChart3 className="h-4 w-4" />
-            Sales Report
+            Penjualan
           </TabsTrigger>
         </TabsList>
 
         <TabsContent value="profit-loss">
           <Card>
             <CardHeader>
-              <CardTitle>Profit & Loss Report</CardTitle>
-              <CardDescription>Generate P&L report for a specific period</CardDescription>
+              <CardTitle>Laporan Laba Rugi</CardTitle>
+              <CardDescription>Generate laporan laba rugi untuk periode tertentu</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="pnl-start-date">Start Date</Label>
+                  <Label htmlFor="pnl-start-date">Tanggal Mulai</Label>
                   <Input
                     id="pnl-start-date"
                     type="date"
@@ -396,7 +422,7 @@ export default function ReportsPage() {
                   />
                 </div>
                 <div>
-                  <Label htmlFor="pnl-end-date">End Date</Label>
+                  <Label htmlFor="pnl-end-date">Tanggal Akhir</Label>
                   <Input
                     id="pnl-end-date"
                     type="date"
@@ -411,7 +437,7 @@ export default function ReportsPage() {
                 className="w-full"
               >
                 <Calculator className="mr-2 h-4 w-4" />
-                {isLoading ? "Generating..." : "Generate P&L Report"}
+                {isLoading ? "Generating..." : "Generate Laporan Laba Rugi"}
               </Button>
               
               {profitLossData && (
@@ -426,12 +452,12 @@ export default function ReportsPage() {
         <TabsContent value="balance-sheet">
           <Card>
             <CardHeader>
-              <CardTitle>Balance Sheet</CardTitle>
-              <CardDescription>Generate balance sheet as of a specific date</CardDescription>
+              <CardTitle>Neraca</CardTitle>
+              <CardDescription>Generate neraca per tanggal tertentu</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
-                <Label htmlFor="balance-sheet-date">As of Date</Label>
+                <Label htmlFor="balance-sheet-date">Per Tanggal</Label>
                 <Input
                   id="balance-sheet-date"
                   type="date"
@@ -445,7 +471,7 @@ export default function ReportsPage() {
                 className="w-full"
               >
                 <Building className="mr-2 h-4 w-4" />
-                {isLoading ? "Generating..." : "Generate Balance Sheet"}
+                {isLoading ? "Generating..." : "Generate Neraca"}
               </Button>
               
               {balanceSheetData && (
@@ -460,13 +486,13 @@ export default function ReportsPage() {
         <TabsContent value="general-ledger">
           <Card>
             <CardHeader>
-              <CardTitle>General Ledger</CardTitle>
-              <CardDescription>Generate general ledger for all accounts</CardDescription>
+              <CardTitle>Buku Besar</CardTitle>
+              <CardDescription>Generate buku besar untuk semua akun</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="gl-start-date">Start Date</Label>
+                  <Label htmlFor="gl-start-date">Tanggal Mulai</Label>
                   <Input
                     id="gl-start-date"
                     type="date"
@@ -475,7 +501,7 @@ export default function ReportsPage() {
                   />
                 </div>
                 <div>
-                  <Label htmlFor="gl-end-date">End Date</Label>
+                  <Label htmlFor="gl-end-date">Tanggal Akhir</Label>
                   <Input
                     id="gl-end-date"
                     type="date"
@@ -490,24 +516,24 @@ export default function ReportsPage() {
                 className="w-full"
               >
                 <FileText className="mr-2 h-4 w-4" />
-                {isLoading ? "Generating..." : "Generate General Ledger"}
+                {isLoading ? "Generating..." : "Generate Buku Besar"}
               </Button>
               
               {generalLedgerData && (
                 <div className="mt-6 p-4 border rounded-lg max-h-96 overflow-auto">
-                  <h3 className="font-bold mb-4">General Ledger Report</h3>
+                  <h3 className="font-bold mb-4">Buku Besar</h3>
                   {generalLedgerData.accounts.map((account: any) => (
                     <div key={account.accountCode} className="mb-6">
                       <h4 className="font-semibold">{account.accountCode} - {account.accountName}</h4>
-                      <p className="text-sm text-muted-foreground">Opening Balance: {formatCurrency(account.openingBalance)}</p>
+                      <p className="text-sm text-muted-foreground">Saldo Awal: {formatCurrency(account.openingBalance)}</p>
                       <Table>
                         <TableHeader>
                           <TableRow>
-                            <TableHead>Date</TableHead>
-                            <TableHead>Description</TableHead>
+                            <TableHead>Tanggal</TableHead>
+                            <TableHead>Deskripsi</TableHead>
                             <TableHead>Debit</TableHead>
-                            <TableHead>Credit</TableHead>
-                            <TableHead>Balance</TableHead>
+                            <TableHead>Kredit</TableHead>
+                            <TableHead>Saldo</TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -522,7 +548,7 @@ export default function ReportsPage() {
                           ))}
                         </TableBody>
                       </Table>
-                      <p className="text-sm font-semibold mt-2">Closing Balance: {formatCurrency(account.closingBalance)}</p>
+                      <p className="text-sm font-semibold mt-2">Saldo Akhir: {formatCurrency(account.closingBalance)}</p>
                     </div>
                   ))}
                 </div>
@@ -534,13 +560,13 @@ export default function ReportsPage() {
         <TabsContent value="sales-report">
           <Card>
             <CardHeader>
-              <CardTitle>Sales Report</CardTitle>
-              <CardDescription>Generate sales report for a specific period</CardDescription>
+              <CardTitle>Laporan Penjualan</CardTitle>
+              <CardDescription>Generate laporan penjualan untuk periode tertentu</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="sales-start-date">Start Date</Label>
+                  <Label htmlFor="sales-start-date">Tanggal Mulai</Label>
                   <Input
                     id="sales-start-date"
                     type="date"
@@ -549,7 +575,7 @@ export default function ReportsPage() {
                   />
                 </div>
                 <div>
-                  <Label htmlFor="sales-end-date">End Date</Label>
+                  <Label htmlFor="sales-end-date">Tanggal Akhir</Label>
                   <Input
                     id="sales-end-date"
                     type="date"
@@ -564,28 +590,28 @@ export default function ReportsPage() {
                 className="w-full"
               >
                 <BarChart3 className="mr-2 h-4 w-4" />
-                {isLoading ? "Generating..." : "Generate Sales Report"}
+                {isLoading ? "Generating..." : "Generate Laporan Penjualan"}
               </Button>
               
               {salesReportData && (
                 <div className="mt-6 p-4 border rounded-lg">
-                  <h3 className="font-bold mb-4">Sales Report Summary</h3>
+                  <h3 className="font-bold mb-4">Ringkasan Penjualan</h3>
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
                     <div className="p-3 bg-blue-50 rounded">
                       <p className="text-sm text-muted-foreground">Total Orders</p>
                       <p className="font-semibold">{salesReportData.summary.totalOrders}</p>
                     </div>
                     <div className="p-3 bg-green-50 rounded">
-                      <p className="text-sm text-muted-foreground">Total Sales</p>
+                      <p className="text-sm text-muted-foreground">Total Penjualan</p>
                       <p className="font-semibold">{formatCurrency(salesReportData.summary.totalSales)}</p>
                     </div>
                     <div className="p-3 bg-yellow-50 rounded">
-                      <p className="text-sm text-muted-foreground">Outstanding</p>
+                      <p className="text-sm text-muted-foreground">Belum Dibayar</p>
                       <p className="font-semibold">{formatCurrency(salesReportData.summary.totalOutstanding)}</p>
                     </div>
                   </div>
                   
-                  <h4 className="font-semibold mb-2">Sales by Customer</h4>
+                  <h4 className="font-semibold mb-2">Penjualan per Customer</h4>
                   <Table>
                     <TableHeader>
                       <TableRow>

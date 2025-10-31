@@ -14,15 +14,20 @@ export interface ProfitLossItem {
 }
 
 export interface ProfitLossReport {
-  pendapatan: ProfitLossItem[];
-  hpp: ProfitLossItem[];
-  pendapatanBersih: number;
-  biayaOperasional: ProfitLossItem[];
-  pendapatanOperasional: number;
+  pendapatanUsaha: ProfitLossItem[];
+  totalPendapatanUsaha: number;
+  bebanPokokPendapatan: ProfitLossItem[];
+  totalBebanPokok: number;
+  labaKotor: number;
+  bebanOperasional: ProfitLossItem[];
+  totalBebanOperasional: number;
+  labaOperasional: number;
   pendapatanLain: ProfitLossItem[];
+  totalPendapatanLain: number;
   bebanLain: ProfitLossItem[];
-  pendapatanLainLain: number;
-  labaBersih: number;
+  totalBebanLain: number;
+  totalPendapatanBebanLain: number;
+  labaRugiBersih: number;
   periode: {
     startDate: string;
     endDate: string;
@@ -51,64 +56,78 @@ export const profitLossReport = api(
       ORDER BY a.account_code
     `;
 
-    const pendapatanResult = await accountingDB.rawQueryAll(accountBalanceQuery, '4%', startDate, endDate);
-    const pendapatan: ProfitLossItem[] = pendapatanResult.map(row => ({
+    // 4. Pendapatan Usaha (Revenue)
+    const pendapatanUsahaResult = await accountingDB.rawQueryAll(accountBalanceQuery, '4%', startDate, endDate);
+    const pendapatanUsaha: ProfitLossItem[] = pendapatanUsahaResult.map(row => ({
       accountCode: row.account_code,
       accountName: row.account_name,
       amount: parseFloat(row.balance)
     }));
+    const totalPendapatanUsaha = pendapatanUsaha.reduce((sum, item) => sum + item.amount, 0);
 
-    const hppResult = await accountingDB.rawQueryAll(accountBalanceQuery, '5%', startDate, endDate);
-    const hpp: ProfitLossItem[] = hppResult.map(row => ({
+    // 5. Beban Pokok Pendapatan (Cost of Revenue)
+    const bebanPokokResult = await accountingDB.rawQueryAll(accountBalanceQuery, '5%', startDate, endDate);
+    const bebanPokokPendapatan: ProfitLossItem[] = bebanPokokResult.map(row => ({
       accountCode: row.account_code,
       accountName: row.account_name,
       amount: Math.abs(parseFloat(row.balance))
     }));
+    const totalBebanPokok = bebanPokokPendapatan.reduce((sum, item) => sum + item.amount, 0);
 
-    const biayaOperasionalResult = await accountingDB.rawQueryAll(accountBalanceQuery, '6%', startDate, endDate);
-    const biayaOperasional: ProfitLossItem[] = biayaOperasionalResult.map(row => ({
+    // Laba Kotor = Total Pendapatan Usaha - Beban Pokok Pendapatan
+    const labaKotor = totalPendapatanUsaha - totalBebanPokok;
+
+    // 6. Beban Operasional
+    const bebanOperasionalResult = await accountingDB.rawQueryAll(accountBalanceQuery, '6%', startDate, endDate);
+    const bebanOperasional: ProfitLossItem[] = bebanOperasionalResult.map(row => ({
       accountCode: row.account_code,
       accountName: row.account_name,
       amount: Math.abs(parseFloat(row.balance))
     }));
+    const totalBebanOperasional = bebanOperasional.reduce((sum, item) => sum + item.amount, 0);
 
+    // Laba Operasional = Laba Kotor - Beban Operasional
+    const labaOperasional = labaKotor - totalBebanOperasional;
+
+    // 7. Pendapatan Lain
     const pendapatanLainResult = await accountingDB.rawQueryAll(accountBalanceQuery, '7%', startDate, endDate);
     const pendapatanLain: ProfitLossItem[] = pendapatanLainResult.map(row => ({
       accountCode: row.account_code,
       accountName: row.account_name,
       amount: parseFloat(row.balance)
     }));
+    const totalPendapatanLain = pendapatanLain.reduce((sum, item) => sum + item.amount, 0);
 
+    // 8. Beban Lain
     const bebanLainResult = await accountingDB.rawQueryAll(accountBalanceQuery, '8%', startDate, endDate);
     const bebanLain: ProfitLossItem[] = bebanLainResult.map(row => ({
       accountCode: row.account_code,
       accountName: row.account_name,
       amount: Math.abs(parseFloat(row.balance))
     }));
-
-    const totalPendapatan = pendapatan.reduce((sum, item) => sum + item.amount, 0);
-    const totalHpp = hpp.reduce((sum, item) => sum + item.amount, 0);
-    const pendapatanBersih = totalPendapatan - totalHpp;
-
-    const totalBiayaOperasional = biayaOperasional.reduce((sum, item) => sum + item.amount, 0);
-    const pendapatanOperasional = pendapatanBersih - totalBiayaOperasional;
-
-    const totalPendapatanLain = pendapatanLain.reduce((sum, item) => sum + item.amount, 0);
     const totalBebanLain = bebanLain.reduce((sum, item) => sum + item.amount, 0);
-    const pendapatanLainLain = totalPendapatanLain - totalBebanLain;
 
-    const labaBersih = pendapatanOperasional + pendapatanLainLain;
+    // Total Pendapatan & Beban Lain = Pendapatan Lain - Beban Lain
+    const totalPendapatanBebanLain = totalPendapatanLain - totalBebanLain;
+
+    // Laba Rugi Bersih = Laba Operasional + Total Pendapatan & Beban Lain
+    const labaRugiBersih = labaOperasional + totalPendapatanBebanLain;
 
     return {
-      pendapatan,
-      hpp,
-      pendapatanBersih,
-      biayaOperasional,
-      pendapatanOperasional,
+      pendapatanUsaha,
+      totalPendapatanUsaha,
+      bebanPokokPendapatan,
+      totalBebanPokok,
+      labaKotor,
+      bebanOperasional,
+      totalBebanOperasional,
+      labaOperasional,
       pendapatanLain,
+      totalPendapatanLain,
       bebanLain,
-      pendapatanLainLain,
-      labaBersih,
+      totalBebanLain,
+      totalPendapatanBebanLain,
+      labaRugiBersih,
       periode: {
         startDate,
         endDate

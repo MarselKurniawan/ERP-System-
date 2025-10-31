@@ -10,6 +10,9 @@ import "./list_orders";
 import "./update_customer";
 import "./update_order";
 import "./generate_invoice";
+import "./list_invoices";
+import "./get_invoice";
+import "./update_invoice";
 import "./sales_report";
 import "./seed_data";
 

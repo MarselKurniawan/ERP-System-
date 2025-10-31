@@ -24,7 +24,8 @@ import {
   Database,
   User,
   LogOut,
-  FileText
+  FileText,
+  Receipt
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 
@@ -33,6 +34,7 @@ const navigation = [
   { name: "Company", href: "/company", icon: Building2 },
   { name: "Inventory", href: "/inventory", icon: Package },
   { name: "Sales", href: "/sales", icon: ShoppingCart },
+  { name: "Invoices", href: "/invoices", icon: Receipt },
   { name: "Purchasing", href: "/purchasing", icon: Truck },
   { name: "Accounting", href: "/accounting", icon: Calculator },
   { name: "Reports", href: "/reports", icon: FileText },

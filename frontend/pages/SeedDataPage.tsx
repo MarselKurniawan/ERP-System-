@@ -40,11 +40,10 @@ export default function SeedDataPage() {
     // Seed in order of dependencies
     await seedData("Users", () => backend.auth.seedUsers());
     await seedData("Companies", () => backend.company.seedCompanies());
-    await seedData("Inventory Categories", () => backend.inventory.seedCategories());
-    await seedData("Inventory Products", () => backend.inventory.seedProducts());
-    await seedData("Sales Customers", () => backend.sales.seedCustomers());
-    await seedData("Purchasing Suppliers", () => backend.purchasing.seedSuppliers());
-    await seedData("Accounting Accounts", () => backend.accounting.seedAccounts());
+    await seedData("Inventory", () => backend.inventory.seedInventory());
+    await seedData("Sales", () => backend.sales.seedSales());
+    await seedData("Purchasing", () => backend.purchasing.seedPurchasing());
+    await seedData("Accounting", () => backend.accounting.seedAccounting());
   };
 
   const renderStatus = (service: string) => {
@@ -106,11 +105,10 @@ export default function SeedDataPage() {
             {[
               "Users",
               "Companies", 
-              "Inventory Categories",
-              "Inventory Products",
-              "Sales Customers",
-              "Purchasing Suppliers",
-              "Accounting Accounts"
+              "Inventory",
+              "Sales",
+              "Purchasing",
+              "Accounting"
             ].map(service => (
               <div key={service} className="flex items-center justify-between py-2 px-3 bg-gray-50 rounded">
                 <span className="text-sm">{service}</span>
@@ -176,32 +174,19 @@ export default function SeedDataPage() {
             <CardTitle className="text-lg">Inventory</CardTitle>
             <CardDescription>Create sample products and categories</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-2">
+          <CardContent>
             <Button 
-              onClick={() => seedData("Categories", () => backend.inventory.seedCategories())}
+              onClick={() => seedData("Inventory", () => backend.inventory.seedInventory())}
               disabled={loading !== null}
               variant="outline"
               className="w-full"
             >
-              {loading === "Categories" ? (
+              {loading === "Inventory" ? (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               ) : (
                 <Database className="mr-2 h-4 w-4" />
               )}
-              Seed Categories
-            </Button>
-            <Button 
-              onClick={() => seedData("Products", () => backend.inventory.seedProducts())}
-              disabled={loading !== null}
-              variant="outline"
-              className="w-full"
-            >
-              {loading === "Products" ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              ) : (
-                <Database className="mr-2 h-4 w-4" />
-              )}
-              Seed Products
+              Seed Inventory
             </Button>
           </CardContent>
         </Card>
@@ -213,17 +198,17 @@ export default function SeedDataPage() {
           </CardHeader>
           <CardContent>
             <Button 
-              onClick={() => seedData("Customers", () => backend.sales.seedCustomers())}
+              onClick={() => seedData("Sales", () => backend.sales.seedSales())}
               disabled={loading !== null}
               variant="outline"
               className="w-full"
             >
-              {loading === "Customers" ? (
+              {loading === "Sales" ? (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               ) : (
                 <Database className="mr-2 h-4 w-4" />
               )}
-              Seed Customers
+              Seed Sales Data
             </Button>
           </CardContent>
         </Card>
@@ -235,17 +220,17 @@ export default function SeedDataPage() {
           </CardHeader>
           <CardContent>
             <Button 
-              onClick={() => seedData("Suppliers", () => backend.purchasing.seedSuppliers())}
+              onClick={() => seedData("Purchasing", () => backend.purchasing.seedPurchasing())}
               disabled={loading !== null}
               variant="outline"
               className="w-full"
             >
-              {loading === "Suppliers" ? (
+              {loading === "Purchasing" ? (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               ) : (
                 <Database className="mr-2 h-4 w-4" />
               )}
-              Seed Suppliers
+              Seed Purchasing Data
             </Button>
           </CardContent>
         </Card>
@@ -257,17 +242,17 @@ export default function SeedDataPage() {
           </CardHeader>
           <CardContent>
             <Button 
-              onClick={() => seedData("Accounts", () => backend.accounting.seedAccounts())}
+              onClick={() => seedData("Accounting", () => backend.accounting.seedAccounting())}
               disabled={loading !== null}
               variant="outline"
               className="w-full"
             >
-              {loading === "Accounts" ? (
+              {loading === "Accounting" ? (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               ) : (
                 <Database className="mr-2 h-4 w-4" />
               )}
-              Seed Accounts
+              Seed Accounting Data
             </Button>
           </CardContent>
         </Card>
