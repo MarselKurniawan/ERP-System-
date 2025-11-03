@@ -62,6 +62,142 @@ export default function InvoicesPage() {
       });
     }
   };
+const handlePrint = (invoice: any) => {
+  if (!invoice) return;
+
+  const printWindow = window.open("", "_blank");
+  if (!printWindow) return;
+
+  const invoiceHtml = `
+    <html>
+      <head>
+        <title>Invoice - ${invoice.invoiceNumber}</title>
+        <style>
+          body {
+            font-family: Arial, sans-serif;
+            padding: 24px;
+            color: #333;
+          }
+          h1, h2, h3 {
+            margin: 0;
+          }
+          table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 16px;
+          }
+          th, td {
+            border: 1px solid #ccc;
+            padding: 8px;
+            text-align: left;
+          }
+          th {
+            background-color: #f9f9f9;
+          }
+          .header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 24px;
+          }
+          .summary {
+            margin-top: 24px;
+            float: right;
+            width: 40%;
+          }
+          .summary table {
+            border: none;
+          }
+          .summary td {
+            border: none;
+            padding: 4px 0;
+          }
+          .total {
+            font-weight: bold;
+            font-size: 1.1em;
+          }
+          .text-right {
+            text-align: right;
+          }
+          .notes {
+            margin-top: 24px;
+            border-top: 1px solid #ccc;
+            padding-top: 8px;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <div>
+            <h1>Invoice</h1>
+            <p><strong>Invoice #:</strong> ${invoice.invoiceNumber}</p>
+            <p><strong>Invoice Date:</strong> ${formatDate(invoice.invoiceDate)}</p>
+            <p><strong>Due Date:</strong> ${formatDate(invoice.dueDate)}</p>
+          </div>
+          <div>
+            <h3>Status: ${invoice.status}</h3>
+            <p><strong>Customer:</strong> ${invoice.customerName}</p>
+            ${invoice.customerEmail ? `<p><strong>Email:</strong> ${invoice.customerEmail}</p>` : ""}
+            ${invoice.customerPhone ? `<p><strong>Phone:</strong> ${invoice.customerPhone}</p>` : ""}
+          </div>
+        </div>
+
+        <table>
+          <thead>
+            <tr>
+              <th>SKU</th>
+              <th>Product</th>
+              <th>Quantity</th>
+              <th>Unit Price</th>
+              <th>Discount</th>
+              <th>Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${invoice.items
+              .map(
+                (item: any) => `
+                <tr>
+                  <td>${item.productSku || "-"}</td>
+                  <td>${item.productName}</td>
+                  <td>${item.quantity}</td>
+                  <td>${formatCurrency(item.unitPrice)}</td>
+                  <td>${formatCurrency(item.discountAmount)}</td>
+                  <td>${formatCurrency(item.lineTotal)}</td>
+                </tr>
+              `
+              )
+              .join("")}
+          </tbody>
+        </table>
+
+        <div class="summary">
+          <table>
+            <tr><td>Subtotal:</td><td class="text-right">${formatCurrency(invoice.subtotal)}</td></tr>
+            <tr><td>Tax:</td><td class="text-right">${formatCurrency(invoice.taxAmount)}</td></tr>
+            <tr><td>Discount:</td><td class="text-right">(${formatCurrency(invoice.discountAmount)})</td></tr>
+            <tr class="total"><td>Total:</td><td class="text-right">${formatCurrency(invoice.totalAmount)}</td></tr>
+            <tr><td>Paid:</td><td class="text-right text-green-700">${formatCurrency(invoice.paidAmount)}</td></tr>
+            <tr><td>Outstanding:</td><td class="text-right text-red-600">${formatCurrency(invoice.totalAmount - invoice.paidAmount)}</td></tr>
+          </table>
+        </div>
+
+        ${
+          invoice.notes
+            ? `<div class="notes"><h4>Notes:</h4><p>${invoice.notes}</p></div>`
+            : ""
+        }
+
+        <script>
+          window.print();
+          window.onafterprint = () => window.close();
+        </script>
+      </body>
+    </html>
+  `;
+
+  printWindow.document.write(invoiceHtml);
+  printWindow.document.close();
+};
 
   const handleEdit = (invoice: any) => {
     setSelectedInvoice(invoice);
@@ -283,142 +419,6 @@ export default function InvoicesPage() {
     🖨️ Print Invoice
   </Button>
 </div>
-const handlePrint = (invoice: any) => {
-  if (!invoice) return;
-
-  const printWindow = window.open("", "_blank");
-  if (!printWindow) return;
-
-  const invoiceHtml = `
-    <html>
-      <head>
-        <title>Invoice - ${invoice.invoiceNumber}</title>
-        <style>
-          body {
-            font-family: Arial, sans-serif;
-            padding: 24px;
-            color: #333;
-          }
-          h1, h2, h3 {
-            margin: 0;
-          }
-          table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 16px;
-          }
-          th, td {
-            border: 1px solid #ccc;
-            padding: 8px;
-            text-align: left;
-          }
-          th {
-            background-color: #f9f9f9;
-          }
-          .header {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 24px;
-          }
-          .summary {
-            margin-top: 24px;
-            float: right;
-            width: 40%;
-          }
-          .summary table {
-            border: none;
-          }
-          .summary td {
-            border: none;
-            padding: 4px 0;
-          }
-          .total {
-            font-weight: bold;
-            font-size: 1.1em;
-          }
-          .text-right {
-            text-align: right;
-          }
-          .notes {
-            margin-top: 24px;
-            border-top: 1px solid #ccc;
-            padding-top: 8px;
-          }
-        </style>
-      </head>
-      <body>
-        <div class="header">
-          <div>
-            <h1>Invoice</h1>
-            <p><strong>Invoice #:</strong> ${invoice.invoiceNumber}</p>
-            <p><strong>Invoice Date:</strong> ${formatDate(invoice.invoiceDate)}</p>
-            <p><strong>Due Date:</strong> ${formatDate(invoice.dueDate)}</p>
-          </div>
-          <div>
-            <h3>Status: ${invoice.status}</h3>
-            <p><strong>Customer:</strong> ${invoice.customerName}</p>
-            ${invoice.customerEmail ? `<p><strong>Email:</strong> ${invoice.customerEmail}</p>` : ""}
-            ${invoice.customerPhone ? `<p><strong>Phone:</strong> ${invoice.customerPhone}</p>` : ""}
-          </div>
-        </div>
-
-        <table>
-          <thead>
-            <tr>
-              <th>SKU</th>
-              <th>Product</th>
-              <th>Quantity</th>
-              <th>Unit Price</th>
-              <th>Discount</th>
-              <th>Total</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${invoice.items
-              .map(
-                (item: any) => `
-                <tr>
-                  <td>${item.productSku || "-"}</td>
-                  <td>${item.productName}</td>
-                  <td>${item.quantity}</td>
-                  <td>${formatCurrency(item.unitPrice)}</td>
-                  <td>${formatCurrency(item.discountAmount)}</td>
-                  <td>${formatCurrency(item.lineTotal)}</td>
-                </tr>
-              `
-              )
-              .join("")}
-          </tbody>
-        </table>
-
-        <div class="summary">
-          <table>
-            <tr><td>Subtotal:</td><td class="text-right">${formatCurrency(invoice.subtotal)}</td></tr>
-            <tr><td>Tax:</td><td class="text-right">${formatCurrency(invoice.taxAmount)}</td></tr>
-            <tr><td>Discount:</td><td class="text-right">(${formatCurrency(invoice.discountAmount)})</td></tr>
-            <tr class="total"><td>Total:</td><td class="text-right">${formatCurrency(invoice.totalAmount)}</td></tr>
-            <tr><td>Paid:</td><td class="text-right text-green-700">${formatCurrency(invoice.paidAmount)}</td></tr>
-            <tr><td>Outstanding:</td><td class="text-right text-red-600">${formatCurrency(invoice.totalAmount - invoice.paidAmount)}</td></tr>
-          </table>
-        </div>
-
-        ${
-          invoice.notes
-            ? `<div class="notes"><h4>Notes:</h4><p>${invoice.notes}</p></div>`
-            : ""
-        }
-
-        <script>
-          window.print();
-          window.onafterprint = () => window.close();
-        </script>
-      </body>
-    </html>
-  `;
-
-  printWindow.document.write(invoiceHtml);
-  printWindow.document.close();
-};
 
         </DialogContent>
       </Dialog>
