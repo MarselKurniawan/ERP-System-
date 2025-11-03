@@ -274,7 +274,7 @@ export default function InvoicesPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {(invoices || []).map((invoice) => (
+                {invoices?.invoices.map((invoice) => (
                   <TableRow key={invoice.id}>
                     <TableCell className="font-medium">{invoice.invoiceNumber}</TableCell>
                     <TableCell>{invoice.customerName}</TableCell>
@@ -358,7 +358,7 @@ export default function InvoicesPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {selectedInvoice.items.map((item: any) => (
+                    {selectedInvoice?.items?.map((item) => (
                       <TableRow key={item.id}>
                         <TableCell>{item.productSku}</TableCell>
                         <TableCell>{item.productName}</TableCell>
