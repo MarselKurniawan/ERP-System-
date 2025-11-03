@@ -283,75 +283,7 @@ export default function InvoicesPage() {
     🖨️ Print Invoice
   </Button>
 </div>
-
-        </DialogContent>
-      </Dialog>
-
-      {/* Edit Dialog */}
-      <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Edit Invoice - {selectedInvoice?.invoiceNumber}</DialogTitle>
-            <DialogDescription>
-              Update invoice status and payment information
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-4">
-            <div>
-              <Label htmlFor="status">Status</Label>
-              <Select value={editStatus} onValueChange={setEditStatus}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="draft">Draft</SelectItem>
-                  <SelectItem value="sent">Sent</SelectItem>
-                  <SelectItem value="paid">Paid</SelectItem>
-                  <SelectItem value="overdue">Overdue</SelectItem>
-                  <SelectItem value="cancelled">Cancelled</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div>
-              <Label htmlFor="paidAmount">Paid Amount</Label>
-              <Input
-                id="paidAmount"
-                type="number"
-                step="0.01"
-                value={editPaidAmount}
-                onChange={(e) => setEditPaidAmount(e.target.value)}
-              />
-              {selectedInvoice && (
-                <p className="text-sm text-muted-foreground mt-1">
-                  Total: {formatCurrency(selectedInvoice.totalAmount)}
-                </p>
-              )}
-            </div>
-
-            <div className="flex gap-2">
-              <Button 
-                onClick={handleUpdateInvoice} 
-                disabled={updateInvoiceMutation.isPending}
-                className="flex-1"
-              >
-                {updateInvoiceMutation.isPending ? "Updating..." : "Update Invoice"}
-              </Button>
-              <Button 
-                variant="outline" 
-                onClick={() => setShowEditDialog(false)}
-                className="flex-1"
-              >
-                Cancel
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
-    </div>
-
-		const handlePrint = (invoice: any) => {
+const handlePrint = (invoice: any) => {
   if (!invoice) return;
 
   const printWindow = window.open("", "_blank");
@@ -488,5 +420,73 @@ export default function InvoicesPage() {
   printWindow.document.close();
 };
 
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Dialog */}
+      <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Invoice - {selectedInvoice?.invoiceNumber}</DialogTitle>
+            <DialogDescription>
+              Update invoice status and payment information
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="status">Status</Label>
+              <Select value={editStatus} onValueChange={setEditStatus}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="draft">Draft</SelectItem>
+                  <SelectItem value="sent">Sent</SelectItem>
+                  <SelectItem value="paid">Paid</SelectItem>
+                  <SelectItem value="overdue">Overdue</SelectItem>
+                  <SelectItem value="cancelled">Cancelled</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <Label htmlFor="paidAmount">Paid Amount</Label>
+              <Input
+                id="paidAmount"
+                type="number"
+                step="0.01"
+                value={editPaidAmount}
+                onChange={(e) => setEditPaidAmount(e.target.value)}
+              />
+              {selectedInvoice && (
+                <p className="text-sm text-muted-foreground mt-1">
+                  Total: {formatCurrency(selectedInvoice.totalAmount)}
+                </p>
+              )}
+            </div>
+
+            <div className="flex gap-2">
+              <Button 
+                onClick={handleUpdateInvoice} 
+                disabled={updateInvoiceMutation.isPending}
+                className="flex-1"
+              >
+                {updateInvoiceMutation.isPending ? "Updating..." : "Update Invoice"}
+              </Button>
+              <Button 
+                variant="outline" 
+                onClick={() => setShowEditDialog(false)}
+                className="flex-1"
+              >
+                Cancel
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </div>
+
+		
   );
 }
