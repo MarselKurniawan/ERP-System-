@@ -17,7 +17,7 @@ CREATE TABLE supplier_invoices (
 CREATE TABLE supplier_invoice_items (
   id SERIAL PRIMARY KEY,
   invoice_id INT NOT NULL REFERENCES supplier_invoices(id) ON DELETE CASCADE,
-  product_id INT REFERENCES products(id) ON DELETE SET NULL,
+  product_id INT,
   description TEXT NOT NULL,
   quantity DECIMAL(10,2) NOT NULL,
   unit_price DECIMAL(15,2) NOT NULL,
@@ -42,3 +42,7 @@ CREATE INDEX idx_supplier_invoices_status ON supplier_invoices(status);
 CREATE INDEX idx_supplier_invoices_date ON supplier_invoices(invoice_date);
 CREATE INDEX idx_supplier_invoice_items_invoice ON supplier_invoice_items(invoice_id);
 CREATE INDEX idx_supplier_invoice_payments_invoice ON supplier_invoice_payments(invoice_id);
+
+ALTER TABLE supplier_invoice_items
+ADD CONSTRAINT fk_supplier_invoice_item_product
+FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE SET NULL;
