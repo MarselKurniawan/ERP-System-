@@ -176,7 +176,7 @@ export default function InvoicesPage() {
 
       {/* Detail Dialog */}
       <Dialog open={showDetailDialog} onOpenChange={setShowDetailDialog}>
-        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+        <DialogContent className="max-w-8xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Invoice Details - {selectedInvoice?.invoiceNumber}</DialogTitle>
             <DialogDescription>
