@@ -62,7 +62,8 @@ export default function InvoicesPage() {
       });
     }
   };
-const handlePrint = (invoice: any) => {
+
+	const handlePrint = (invoice: any) => {
   if (!invoice) return;
 
   const printWindow = window.open("", "_blank");
@@ -199,6 +200,7 @@ const handlePrint = (invoice: any) => {
   printWindow.document.close();
 };
 
+
   const handleEdit = (invoice: any) => {
     setSelectedInvoice(invoice);
     setEditStatus(invoice.status);
@@ -312,7 +314,7 @@ const handlePrint = (invoice: any) => {
 
       {/* Detail Dialog */}
       <Dialog open={showDetailDialog} onOpenChange={setShowDetailDialog}>
-        <DialogContent className="overflow-y-auto">
+        <DialogContent className="max-w-8xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Invoice Details - {selectedInvoice?.invoiceNumber}</DialogTitle>
             <DialogDescription>
@@ -486,7 +488,6 @@ const handlePrint = (invoice: any) => {
         </DialogContent>
       </Dialog>
     </div>
-
 		
   );
 }
