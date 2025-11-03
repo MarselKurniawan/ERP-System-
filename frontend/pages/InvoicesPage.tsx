@@ -273,6 +273,17 @@ export default function InvoicesPage() {
               )}
             </div>
           )}
+
+					<div className="flex justify-end mb-2">
+  <Button
+    variant="outline"
+    onClick={() => handlePrint(selectedInvoice)}
+    className="flex items-center gap-2"
+  >
+    🖨️ Print Invoice
+  </Button>
+</div>
+
         </DialogContent>
       </Dialog>
 
