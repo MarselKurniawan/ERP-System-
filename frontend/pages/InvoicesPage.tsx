@@ -201,12 +201,12 @@ export default function InvoicesPage() {
 };
 
 
-  const handleEdit = (invoice: any) => {
-    setSelectedInvoice(invoice);
-    setEditStatus(invoice.status);
-    setEditPaidAmount(invoice.paidAmount.toString());
-    setShowEditDialog(true);
-  };
+ const handleEdit = (invoice: any) => {
+  setSelectedInvoice(invoice);
+  setEditStatus(invoice.status || "draft");
+  setEditPaidAmount(invoice.paidAmount ? invoice.paidAmount.toString() : "0");
+  setShowEditDialog(true);
+};
 
   const handleUpdateInvoice = () => {
     if (!selectedInvoice) return;
