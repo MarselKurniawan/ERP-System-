@@ -76,3 +76,4 @@ CREATE INDEX idx_purchase_orders_supplier_id ON purchase_orders(supplier_id);
 CREATE INDEX idx_purchase_orders_order_number ON purchase_orders(order_number);
 CREATE INDEX idx_bills_supplier_id ON bills(supplier_id);
 CREATE INDEX idx_bills_bill_number ON bills(bill_number);
+
