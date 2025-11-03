@@ -15,7 +15,7 @@ CREATE TABLE supplier_invoices (
 );
 
 CREATE TABLE supplier_invoice_items (
-    id SERIAL PRIMARY KEY,
+  id SERIAL PRIMARY KEY,
   invoice_id INT NOT NULL REFERENCES supplier_invoices(id) ON DELETE CASCADE,
   product_id INT REFERENCES products(id) ON DELETE SET NULL,
   description TEXT NOT NULL,
