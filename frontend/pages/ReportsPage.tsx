@@ -152,6 +152,12 @@ export default function ReportsPage() {
     }).format(amount);
   };
 
+  const formatDate = (dateString: string | Date) => {
+    if (!dateString) return '';
+    const date = typeof dateString === 'string' ? new Date(dateString) : dateString;
+    return date.toLocaleDateString('id-ID');
+  };
+
   const generateProfitLossReport = async () => {
     if (!pnlStartDate || !pnlEndDate) {
       toast({ title: "Error", description: "Please select start and end dates", variant: "destructive" });
@@ -707,7 +713,7 @@ export default function ReportsPage() {
                         <TableBody>
                           {account.entries.map((entry: any, index: number) => (
                             <TableRow key={index}>
-                              <TableCell>{entry.entryDate}</TableCell>
+                              <TableCell>{formatDate(entry.entryDate)}</TableCell>
                               <TableCell>{entry.description}</TableCell>
                               <TableCell>{entry.debitAmount > 0 ? formatCurrency(entry.debitAmount) : ''}</TableCell>
                               <TableCell>{entry.creditAmount > 0 ? formatCurrency(entry.creditAmount) : ''}</TableCell>
@@ -890,8 +896,8 @@ export default function ReportsPage() {
                         <TableRow key={item.invoiceNumber}>
                           <TableCell>{item.invoiceNumber}</TableCell>
                           <TableCell>{item.customerName}</TableCell>
-                          <TableCell>{item.invoiceDate}</TableCell>
-                          <TableCell>{item.dueDate}</TableCell>
+                          <TableCell>{formatDate(item.invoiceDate)}</TableCell>
+                          <TableCell>{formatDate(item.dueDate)}</TableCell>
                           <TableCell>{item.paymentTerms} hari</TableCell>
                           <TableCell>{formatCurrency(item.totalAmount)}</TableCell>
                           <TableCell>{formatCurrency(item.paidAmount)}</TableCell>
@@ -1161,8 +1167,8 @@ export default function ReportsPage() {
                         <TableRow key={entry.invoice_id}>
                           <TableCell>{entry.invoice_number}</TableCell>
                           <TableCell>{entry.supplier_name}</TableCell>
-                          <TableCell>{entry.invoice_date}</TableCell>
-                          <TableCell>{entry.due_date}</TableCell>
+                          <TableCell>{formatDate(entry.invoice_date)}</TableCell>
+                          <TableCell>{formatDate(entry.due_date)}</TableCell>
                           <TableCell>{formatCurrency(entry.total_amount)}</TableCell>
                           <TableCell>{formatCurrency(entry.paid_amount)}</TableCell>
                           <TableCell className="font-semibold text-red-600">{formatCurrency(entry.balance_due)}</TableCell>
