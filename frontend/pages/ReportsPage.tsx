@@ -299,7 +299,7 @@ export default function ReportsPage() {
         <div className="text-center">
           <h2 className="text-2xl font-bold">LAPORAN LABA RUGI</h2>
           <p className="text-sm text-muted-foreground">
-            Periode: {profitLossData.periode.startDate} s/d {profitLossData.periode.endDate}
+            Periode: {formatDate(profitLossData.periode.startDate)} s/d {formatDate(profitLossData.periode.endDate)}
           </p>
         </div>
 
@@ -418,7 +418,7 @@ export default function ReportsPage() {
         <div className="text-center">
           <h2 className="text-2xl font-bold">NERACA</h2>
           <p className="text-sm text-muted-foreground">
-            Per Tanggal: {balanceSheetData.asOfDate}
+            Per Tanggal: {formatDate(balanceSheetData.asOfDate)}
           </p>
         </div>
 
@@ -842,7 +842,7 @@ export default function ReportsPage() {
                   <div className="text-center mb-6">
                     <h2 className="text-2xl font-bold">LAPORAN UMUR PIUTANG</h2>
                     <p className="text-sm text-muted-foreground">
-                      Per Tanggal: {agingReceivablesData.asOfDate}
+                      Per Tanggal: {formatDate(agingReceivablesData.asOfDate)}
                     </p>
                   </div>
 
@@ -956,7 +956,7 @@ export default function ReportsPage() {
                   <div className="text-center mb-6">
                     <h2 className="text-2xl font-bold">LAPORAN KAS & BANK</h2>
                     <p className="text-sm text-muted-foreground">
-                      Per Tanggal: {cashBankData.asOfDate}
+                      Per Tanggal: {formatDate(cashBankData.asOfDate)}
                     </p>
                   </div>
 
@@ -1110,7 +1110,7 @@ export default function ReportsPage() {
                   <div className="text-center mb-6">
                     <h2 className="text-2xl font-bold">LAPORAN UMUR HUTANG</h2>
                     <p className="text-sm text-muted-foreground">
-                      Per Tanggal: {agingPayablesData.as_of_date}
+                      Per Tanggal: {formatDate(agingPayablesData.as_of_date)}
                     </p>
                   </div>
 
