@@ -10,13 +10,14 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/components/ui/use-toast";
 import { Plus, Package, AlertTriangle, Edit, Trash2 } from "lucide-react";
-import backend from "~backend/client";
+import { useBackend } from "@/hooks/useBackend";
 import type { CreateCategoryRequest } from "~backend/inventory/create_category";
 import type { CreateProductRequest } from "~backend/inventory/create_product";
 import type { UpdateCategoryRequest } from "~backend/inventory/update_category";
 import type { UpdateProductRequest } from "~backend/inventory/update_product";
 
 export default function InventoryPage() {
+  const backend = useBackend();
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('id-ID', {
       style: 'currency',

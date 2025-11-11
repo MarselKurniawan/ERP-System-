@@ -10,9 +10,10 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { FileText, Eye, Edit } from "lucide-react";
-import backend from "~backend/client";
+import { useBackend } from "@/hooks/useBackend";
 
 export default function InvoicesPage() {
+  const backend = useBackend();
   const [selectedInvoice, setSelectedInvoice] = useState<any>(null);
   const [showDetailDialog, setShowDetailDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);

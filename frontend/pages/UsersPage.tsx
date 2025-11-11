@@ -8,11 +8,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/components/ui/use-toast";
 import { Plus, Users, Edit, Trash2 } from "lucide-react";
-import backend from "~backend/client";
+import { useBackend } from "@/hooks/useBackend";
 import type { CreateUserRequest } from "~backend/auth/create_user";
 import type { UpdateUserRequest } from "~backend/auth/update_user";
 
 export default function UsersPage() {
+  const backend = useBackend();
   const [showForm, setShowForm] = useState(false);
   const [editingUser, setEditingUser] = useState<any>(null);
   const [formData, setFormData] = useState<CreateUserRequest>({

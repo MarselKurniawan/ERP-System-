@@ -11,7 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/components/ui/use-toast";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Plus, Truck, Building, Trash2, Edit, FileText, DollarSign } from "lucide-react";
-import backend from "~backend/client";
+import { useBackend } from "@/hooks/useBackend";
 import type { CreateSupplierRequest } from "~backend/purchasing/create_supplier";
 import type { CreatePurchaseOrderRequest, PurchaseOrderItem } from "~backend/purchasing/create_purchase_order";
 import type { UpdateSupplierRequest } from "~backend/purchasing/update_supplier";
@@ -20,6 +20,7 @@ import type { CreateSupplierInvoiceRequest, SupplierInvoiceItem } from "~backend
 import type { PaySupplierInvoiceRequest } from "~backend/purchasing/pay_supplier_invoice";
 
 export default function PurchasingPage() {
+  const backend = useBackend();
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('id-ID', {
       style: 'currency',

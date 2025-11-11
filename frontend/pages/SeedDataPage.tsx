@@ -5,9 +5,10 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Separator } from "@/components/ui/separator";
 import { Database, CheckCircle, AlertCircle, Loader2 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
-import backend from "~backend/client";
+import { useBackend } from "@/hooks/useBackend";
 
 export default function SeedDataPage() {
+  const backend = useBackend();
   const [loading, setLoading] = useState<string | null>(null);
   const [results, setResults] = useState<Record<string, boolean>>({});
   const { toast } = useToast();

@@ -10,13 +10,14 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/components/ui/use-toast";
 import { Plus, Users, ShoppingCart, Trash2, Edit, FileText } from "lucide-react";
-import backend from "~backend/client";
+import { useBackend } from "@/hooks/useBackend";
 import type { CreateCustomerRequest } from "~backend/sales/create_customer";
 import type { CreateSalesOrderRequest, OrderItem } from "~backend/sales/create_order";
 import type { UpdateCustomerRequest } from "~backend/sales/update_customer";
 import type { UpdateSalesOrderRequest } from "~backend/sales/update_order";
 
 export default function SalesPage() {
+  const backend = useBackend();
   const [showCustomerForm, setShowCustomerForm] = useState(false);
   const [showOrderForm, setShowOrderForm] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<any>(null);

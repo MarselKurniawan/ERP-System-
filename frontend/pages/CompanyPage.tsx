@@ -8,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/components/ui/use-toast";
 import { Plus, Edit, Trash2 } from "lucide-react";
-import backend from "~backend/client";
+import { useBackend } from "@/hooks/useBackend";
 import type { CreateCompanyRequest } from "~backend/company/create";
 import type { UpdateCompanyRequest } from "~backend/company/update";
 
@@ -24,6 +24,7 @@ const currencies = [
 ];
 
 export default function CompanyPage() {
+  const backend = useBackend();
   const [showForm, setShowForm] = useState(false);
   const [editingCompany, setEditingCompany] = useState<any>(null);
   const [formData, setFormData] = useState<CreateCompanyRequest>({

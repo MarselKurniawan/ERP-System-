@@ -1,9 +1,11 @@
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Package, ShoppingCart, Truck, DollarSign } from "lucide-react";
-import backend from "~backend/client";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function Dashboard() {
+  const { backend } = useAuth();
+
   const { data: products } = useQuery({
     queryKey: ["products"],
     queryFn: () => backend.inventory.listProducts(),

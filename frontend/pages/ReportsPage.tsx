@@ -7,7 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Separator } from "@/components/ui/separator";
 import { FileText, Calculator, BarChart3, TrendingUp, Building, Clock, Wallet, AlertTriangle } from "lucide-react";
-import backend from "~backend/client";
+import { useBackend } from "@/hooks/useBackend";
 import { useToast } from "@/components/ui/use-toast";
 
 interface ProfitLossData {
@@ -122,6 +122,8 @@ interface AgingPayablesData {
 }
 
 export default function ReportsPage() {
+  const backend = useBackend();
+  const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [profitLossData, setProfitLossData] = useState<ProfitLossData | null>(null);
   const [balanceSheetData, setBalanceSheetData] = useState<BalanceSheetData | null>(null);
@@ -141,8 +143,6 @@ export default function ReportsPage() {
   const [agingDate, setAgingDate] = useState('');
   const [cashBankDate, setCashBankDate] = useState('');
   const [agingPayablesDate, setAgingPayablesDate] = useState('');
-
-  const { toast } = useToast();
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('id-ID', {

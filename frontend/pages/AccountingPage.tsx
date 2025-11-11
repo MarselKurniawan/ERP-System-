@@ -10,11 +10,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/components/ui/use-toast";
 import { Plus, Calculator, FileText, BarChart3, Trash2 } from "lucide-react";
-import backend from "~backend/client";
+import { useBackend } from "@/hooks/useBackend";
 import type { CreateAccountRequest } from "~backend/accounting/create_account";
 import type { CreateJournalEntryRequest, JournalEntryLine } from "~backend/accounting/create_journal_entry";
 
 export default function AccountingPage() {
+  const backend = useBackend();
   const [showAccountForm, setShowAccountForm] = useState(false);
   const [showJournalForm, setShowJournalForm] = useState(false);
   const [showTrialBalance, setShowTrialBalance] = useState(false);
