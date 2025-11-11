@@ -13,6 +13,7 @@ CREATE TABLE products (
   category_id BIGINT REFERENCES categories(id),
   unit_price DOUBLE PRECISION NOT NULL DEFAULT 0,
   cost_price DOUBLE PRECISION NOT NULL DEFAULT 0,
+  revenue_account_id BIGINT,
   stock_quantity INTEGER NOT NULL DEFAULT 0,
   min_stock_level INTEGER NOT NULL DEFAULT 0,
   max_stock_level INTEGER,

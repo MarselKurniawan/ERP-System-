@@ -1,5 +1,7 @@
 import { api } from "encore.dev/api";
 import { salesDB } from "./db";
+import { accountingDB } from "../accounting/db";
+import { inventoryDB } from "../inventory/db";
 
 export interface GenerateInvoiceRequest {
   salesOrderId: number;
@@ -117,6 +119,75 @@ export const generateInvoice = api(
       `;
 
       await salesDB.rawExec(copyItemsQuery, invoiceId, salesOrderId);
+
+      const customerQuery = `SELECT receivable_account_id FROM customers WHERE id = $1`;
+      const customerResult = await salesDB.rawQueryRow(customerQuery, salesOrder.customer_id);
+      const receivableAccountId = customerResult?.receivable_account_id;
+
+      if (receivableAccountId) {
+        const invoiceItemsQuery = `
+          SELECT ii.product_id, ii.quantity, ii.line_total
+          FROM invoice_items ii
+          WHERE ii.invoice_id = $1
+        `;
+        const invoiceItems = await salesDB.rawQueryAll(invoiceItemsQuery, invoiceId);
+
+        const entryNumberQuery = `
+          SELECT COALESCE(MAX(CAST(SUBSTRING(entry_number FROM 3) AS INTEGER)), 0) + 1 as next_number
+          FROM journal_entries 
+          WHERE entry_number ~ '^JE[0-9]+$'
+        `;
+        const entryNumberResult = await accountingDB.rawQueryRow(entryNumberQuery);
+        const nextNumber = entryNumberResult?.next_number || 1;
+        const entryNumber = `JE${nextNumber.toString().padStart(6, '0')}`;
+
+        const createJournalEntryQuery = `
+          INSERT INTO journal_entries (entry_number, entry_date, description, reference_type, reference_id, status)
+          VALUES ($1, $2, $3, $4, $5, 'posted')
+          RETURNING id
+        `;
+        const journalEntryResult = await accountingDB.rawQueryRow(
+          createJournalEntryQuery,
+          entryNumber,
+          finalInvoiceDate,
+          `Invoice ${invoiceNumber} - ${salesOrder.customer_name}`,
+          'invoice',
+          invoiceId
+        );
+        const journalEntryId = journalEntryResult!.id;
+
+        const insertDebitLineQuery = `
+          INSERT INTO journal_entry_lines (journal_entry_id, account_id, debit_amount, credit_amount, description)
+          VALUES ($1, $2, $3, 0, $4)
+        `;
+        await accountingDB.rawExec(
+          insertDebitLineQuery,
+          journalEntryId,
+          receivableAccountId,
+          salesOrder.total_amount,
+          `Accounts Receivable - ${salesOrder.customer_name}`
+        );
+
+        for (const item of invoiceItems) {
+          const productQuery = `SELECT revenue_account_id FROM products WHERE id = $1`;
+          const productResult = await inventoryDB.rawQueryRow(productQuery, item.product_id);
+          const revenueAccountId = productResult?.revenue_account_id;
+
+          if (revenueAccountId) {
+            const insertCreditLineQuery = `
+              INSERT INTO journal_entry_lines (journal_entry_id, account_id, debit_amount, credit_amount, description)
+              VALUES ($1, $2, 0, $3, $4)
+            `;
+            await accountingDB.rawExec(
+              insertCreditLineQuery,
+              journalEntryId,
+              revenueAccountId,
+              item.line_total,
+              `Revenue from product`
+            );
+          }
+        }
+      }
 
       if (salesOrder.status === 'confirmed') {
         const updateOrderQuery = `

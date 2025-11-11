@@ -39,10 +39,8 @@ export const cashBankReport = api(
         COALESCE(SUM(jel.debit_amount - jel.credit_amount), 0) as balance
       FROM chart_of_accounts a
       LEFT JOIN journal_entry_lines jel ON a.id = jel.account_id
-      LEFT JOIN journal_entries je ON jel.journal_entry_id = je.id
+      LEFT JOIN journal_entries je ON jel.journal_entry_id = je.id AND je.entry_date <= $1 AND je.status = 'posted'
       WHERE a.account_code LIKE '1%'
-        AND je.entry_date <= $1
-        AND je.status = 'posted'
         AND a.is_active = true
         AND (
           LOWER(a.account_name) LIKE '%kas%' 

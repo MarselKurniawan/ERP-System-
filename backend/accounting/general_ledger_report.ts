@@ -67,10 +67,8 @@ export const generalLedgerReport = api(
         ) as opening_balance
       FROM chart_of_accounts a
       LEFT JOIN journal_entry_lines jel ON a.id = jel.account_id
-      LEFT JOIN journal_entries je ON jel.journal_entry_id = je.id
-      WHERE je.entry_date < $1
-        AND je.status = 'posted'
-        AND a.is_active = true
+      LEFT JOIN journal_entries je ON jel.journal_entry_id = je.id AND je.entry_date < $1 AND je.status = 'posted'
+      WHERE a.is_active = true
         ${accountFilter}
       GROUP BY a.id, a.account_code, a.account_name, a.account_type
       ORDER BY a.account_code
@@ -91,10 +89,8 @@ export const generalLedgerReport = api(
         jel.credit_amount
       FROM chart_of_accounts a
       INNER JOIN journal_entry_lines jel ON a.id = jel.account_id
-      INNER JOIN journal_entries je ON jel.journal_entry_id = je.id
-      WHERE je.entry_date BETWEEN $1 AND $2
-        AND je.status = 'posted'
-        AND a.is_active = true
+      INNER JOIN journal_entries je ON jel.journal_entry_id = je.id AND je.entry_date BETWEEN $1 AND $2 AND je.status = 'posted'
+      WHERE a.is_active = true
         ${accountFilter}
       ORDER BY a.account_code, je.entry_date, je.entry_number, jel.id
     `;

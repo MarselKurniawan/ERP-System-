@@ -50,10 +50,8 @@ export const balanceSheetReport = api(
         COALESCE(SUM(jel.debit_amount - jel.credit_amount), 0) as balance
       FROM chart_of_accounts a
       LEFT JOIN journal_entry_lines jel ON a.id = jel.account_id
-      LEFT JOIN journal_entries je ON jel.journal_entry_id = je.id
+      LEFT JOIN journal_entries je ON jel.journal_entry_id = je.id AND je.entry_date <= $1 AND je.status = 'posted'
       WHERE a.account_code LIKE '1%'
-        AND je.entry_date <= $1
-        AND je.status = 'posted'
         AND a.is_active = true
       GROUP BY a.id, a.account_code, a.account_name
       HAVING COALESCE(SUM(jel.debit_amount - jel.credit_amount), 0) != 0
@@ -68,10 +66,8 @@ export const balanceSheetReport = api(
         COALESCE(SUM(jel.credit_amount - jel.debit_amount), 0) as balance
       FROM chart_of_accounts a
       LEFT JOIN journal_entry_lines jel ON a.id = jel.account_id
-      LEFT JOIN journal_entries je ON jel.journal_entry_id = je.id
+      LEFT JOIN journal_entries je ON jel.journal_entry_id = je.id AND je.entry_date <= $1 AND je.status = 'posted'
       WHERE a.account_code LIKE '2%'
-        AND je.entry_date <= $1
-        AND je.status = 'posted'
         AND a.is_active = true
       GROUP BY a.id, a.account_code, a.account_name
       HAVING COALESCE(SUM(jel.credit_amount - jel.debit_amount), 0) != 0
@@ -86,10 +82,8 @@ export const balanceSheetReport = api(
         COALESCE(SUM(jel.credit_amount - jel.debit_amount), 0) as balance
       FROM chart_of_accounts a
       LEFT JOIN journal_entry_lines jel ON a.id = jel.account_id
-      LEFT JOIN journal_entries je ON jel.journal_entry_id = je.id
+      LEFT JOIN journal_entries je ON jel.journal_entry_id = je.id AND je.entry_date <= $1 AND je.status = 'posted'
       WHERE a.account_code LIKE '3%'
-        AND je.entry_date <= $1
-        AND je.status = 'posted'
         AND a.is_active = true
       GROUP BY a.id, a.account_code, a.account_name
       HAVING COALESCE(SUM(jel.credit_amount - jel.debit_amount), 0) != 0

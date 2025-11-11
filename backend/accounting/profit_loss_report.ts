@@ -47,12 +47,11 @@ export const profitLossReport = api(
         COALESCE(SUM(jel.credit_amount - jel.debit_amount), 0) as balance
       FROM chart_of_accounts a
       LEFT JOIN journal_entry_lines jel ON a.id = jel.account_id
-      LEFT JOIN journal_entries je ON jel.journal_entry_id = je.id
+      LEFT JOIN journal_entries je ON jel.journal_entry_id = je.id AND je.entry_date BETWEEN $2 AND $3 AND je.status = 'posted'
       WHERE a.account_code LIKE $1
-        AND je.entry_date BETWEEN $2 AND $3
-        AND je.status = 'posted'
         AND a.is_active = true
       GROUP BY a.id, a.account_code, a.account_name, a.account_type
+      HAVING COALESCE(SUM(jel.credit_amount - jel.debit_amount), 0) != 0
       ORDER BY a.account_code
     `;
 

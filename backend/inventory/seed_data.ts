@@ -142,8 +142,8 @@ export const seedInventory = api<void, { message: string }>(
         const categoryId = categoryIds[product.categoryName];
         
         const newProduct = await inventoryDB.queryRow<{ id: number }>`
-          INSERT INTO products (sku, name, description, category_id, unit_price, cost_price, stock_quantity, min_stock_level, max_stock_level, unit)
-          VALUES (${product.sku}, ${product.name}, ${product.description}, ${categoryId}, ${product.unitPrice}, ${product.costPrice}, ${product.stockQuantity}, ${product.minStockLevel}, ${product.maxStockLevel}, ${product.unit})
+          INSERT INTO products (sku, name, description, category_id, unit_price, cost_price, revenue_account_id, stock_quantity, min_stock_level, max_stock_level, unit)
+          VALUES (${product.sku}, ${product.name}, ${product.description}, ${categoryId}, ${product.unitPrice}, ${product.costPrice}, NULL, ${product.stockQuantity}, ${product.minStockLevel}, ${product.maxStockLevel}, ${product.unit})
           RETURNING id
         `;
 

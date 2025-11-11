@@ -10,6 +10,7 @@ export interface Product {
   categoryName?: string;
   unitPrice: number;
   costPrice: number;
+  revenueAccountId?: number;
   stockQuantity: number;
   minStockLevel: number;
   maxStockLevel?: number;
@@ -32,6 +33,7 @@ export const listProducts = api<void, ListProductsResponse>(
         p.id, p.sku, p.name, p.description, 
         p.category_id as "categoryId", c.name as "categoryName",
         p.unit_price as "unitPrice", p.cost_price as "costPrice",
+        p.revenue_account_id as "revenueAccountId",
         p.stock_quantity as "stockQuantity", p.min_stock_level as "minStockLevel",
         p.max_stock_level as "maxStockLevel", p.unit, p.is_active as "isActive",
         p.created_at as "createdAt", p.updated_at as "updatedAt"

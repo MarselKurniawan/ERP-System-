@@ -541,16 +541,19 @@ export namespace inventory {
         public async updateProduct(params: RequestType<typeof api_inventory_update_product_updateProduct>): Promise<ResponseType<typeof api_inventory_update_product_updateProduct>> {
             // Construct the body with only the fields which we want encoded within the body (excluding query string or header fields)
             const body: Record<string, any> = {
-                categoryId:    params.categoryId,
-                costPrice:     params.costPrice,
-                description:   params.description,
-                isActive:      params.isActive,
-                maxStockLevel: params.maxStockLevel,
-                minStockLevel: params.minStockLevel,
-                name:          params.name,
-                sku:           params.sku,
-                unit:          params.unit,
-                unitPrice:     params.unitPrice,
+                categoryId:       params.categoryId,
+                cogsAccountId:    params.cogsAccountId,
+                costPrice:        params.costPrice,
+                description:      params.description,
+                isActive:         params.isActive,
+                maxStockLevel:    params.maxStockLevel,
+                minStockLevel:    params.minStockLevel,
+                name:             params.name,
+                productType:      params.productType,
+                revenueAccountId: params.revenueAccountId,
+                sku:              params.sku,
+                unit:             params.unit,
+                unitPrice:        params.unitPrice,
             }
 
             // Now make the actual call to the API
@@ -890,9 +893,10 @@ export namespace sales {
         public async updateInvoice(params: RequestType<typeof api_sales_update_invoice_updateInvoice>): Promise<ResponseType<typeof api_sales_update_invoice_updateInvoice>> {
             // Construct the body with only the fields which we want encoded within the body (excluding query string or header fields)
             const body: Record<string, any> = {
-                notes:      params.notes,
-                paidAmount: params.paidAmount,
-                status:     params.status,
+                bankAccountId: params.bankAccountId,
+                notes:         params.notes,
+                paidAmount:    params.paidAmount,
+                status:        params.status,
             }
 
             // Now make the actual call to the API

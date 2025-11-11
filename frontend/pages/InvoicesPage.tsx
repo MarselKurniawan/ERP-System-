@@ -358,7 +358,7 @@ export default function InvoicesPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {selectedInvoice?.items?.map((item) => (
+                    {selectedInvoice?.items?.map((item: any) => (
                       <TableRow key={item.id}>
                         <TableCell>{item.productSku}</TableCell>
                         <TableCell>{item.productName}</TableCell>
