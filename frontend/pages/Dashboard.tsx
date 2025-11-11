@@ -19,6 +19,14 @@ export default function Dashboard() {
     queryFn: () => backend.purchasing.listPurchaseOrders(),
   });
 
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('id-ID', {
+      style: 'currency',
+      currency: 'IDR',
+      minimumFractionDigits: 0
+    }).format(amount);
+  };
+
   const lowStockProducts = products?.products.filter(p => p.stockQuantity <= p.minStockLevel) || [];
   const totalSalesValue = salesOrders?.orders.reduce((sum, order) => sum + order.totalAmount, 0) || 0;
   const totalPurchaseValue = purchaseOrders?.orders.reduce((sum, order) => sum + order.totalAmount, 0) || 0;
@@ -52,7 +60,7 @@ export default function Dashboard() {
           <CardContent>
             <div className="text-2xl font-bold">{salesOrders?.orders.length || 0}</div>
             <p className="text-xs text-muted-foreground">
-              ${totalSalesValue.toFixed(2)} total value
+              {formatCurrency(totalSalesValue)} total value
             </p>
           </CardContent>
         </Card>
@@ -65,7 +73,7 @@ export default function Dashboard() {
           <CardContent>
             <div className="text-2xl font-bold">{purchaseOrders?.orders.length || 0}</div>
             <p className="text-xs text-muted-foreground">
-              ${totalPurchaseValue.toFixed(2)} total value
+              {formatCurrency(totalPurchaseValue)} total value
             </p>
           </CardContent>
         </Card>
@@ -77,7 +85,7 @@ export default function Dashboard() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              Rp. {(totalSalesValue - totalPurchaseValue).toFixed(2)}
+              {formatCurrency(totalSalesValue - totalPurchaseValue)}
             </div>
             <p className="text-xs text-muted-foreground">
               Sales minus purchases

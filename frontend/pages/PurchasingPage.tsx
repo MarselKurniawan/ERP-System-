@@ -20,6 +20,14 @@ import type { CreateSupplierInvoiceRequest, SupplierInvoiceItem } from "~backend
 import type { PaySupplierInvoiceRequest } from "~backend/purchasing/pay_supplier_invoice";
 
 export default function PurchasingPage() {
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('id-ID', {
+      style: 'currency',
+      currency: 'IDR',
+      minimumFractionDigits: 0
+    }).format(amount);
+  };
+
   const [showSupplierForm, setShowSupplierForm] = useState(false);
   const [showOrderForm, setShowOrderForm] = useState(false);
   const [showInvoiceForm, setShowInvoiceForm] = useState(false);
@@ -618,7 +626,7 @@ export default function PurchasingPage() {
                               <span className="text-sm text-gray-500 ml-2">({item.productSku})</span>
                             </div>
                             <div className="text-sm">
-                              {item.quantity} × ${item.unitPrice.toFixed(2)} = ${((item.quantity * item.unitPrice) - (item.discountAmount || 0)).toFixed(2)}
+                              {item.quantity} × {formatCurrency(item.unitPrice)} = {formatCurrency((item.quantity * item.unitPrice) - (item.discountAmount || 0))}
                             </div>
                             <Button
                               type="button"

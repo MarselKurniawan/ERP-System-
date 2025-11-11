@@ -17,6 +17,14 @@ import type { UpdateCategoryRequest } from "~backend/inventory/update_category";
 import type { UpdateProductRequest } from "~backend/inventory/update_product";
 
 export default function InventoryPage() {
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('id-ID', {
+      style: 'currency',
+      currency: 'IDR',
+      minimumFractionDigits: 0
+    }).format(amount);
+  };
+
   const [showCategoryForm, setShowCategoryForm] = useState(false);
   const [showProductForm, setShowProductForm] = useState(false);
   const [editingCategory, setEditingCategory] = useState<any>(null);
@@ -49,6 +57,11 @@ export default function InventoryPage() {
   const { data: products } = useQuery({
     queryKey: ["products"],
     queryFn: () => backend.inventory.listProducts(),
+  });
+
+  const { data: accounts } = useQuery({
+    queryKey: ["accounts"],
+    queryFn: () => backend.accounting.listAccounts(),
   });
 
   const createCategoryMutation = useMutation({
@@ -236,6 +249,7 @@ export default function InventoryPage() {
       categoryId: product.categoryId,
       unitPrice: product.unitPrice,
       costPrice: product.costPrice,
+      revenueAccountId: product.revenueAccountId,
       stockQuantity: product.stockQuantity,
       minStockLevel: product.minStockLevel,
       maxStockLevel: product.maxStockLevel,
@@ -375,6 +389,29 @@ export default function InventoryPage() {
                         onChange={(e) => setProductData({ ...productData, costPrice: parseFloat(e.target.value) || 0 })}
                       />
                     </div>
+                    <div>
+                      <Label htmlFor="revenueAccountId">Revenue Account (Optional)</Label>
+                      <Select
+                        value={productData.revenueAccountId?.toString() || ""}
+                        onValueChange={(value) => setProductData({ ...productData, revenueAccountId: value ? parseInt(value) : undefined })}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select revenue account" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {accounts?.accounts
+                            .filter(acc => acc.accountCode.startsWith('4'))
+                            .map((account) => (
+                            <SelectItem key={account.id} value={account.id.toString()}>
+                              {account.accountCode} - {account.accountName}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Account to record revenue when this product is sold (account code 4xxx)
+                      </p>
+                    </div>
                     {!editingProduct && (
                       <div>
                         <Label htmlFor="stockQuantity">Initial Stock</Label>
@@ -457,11 +494,11 @@ export default function InventoryPage() {
                   </div>
                   <div className="flex justify-between">
                     <span className="text-sm">Unit Price:</span>
-                    <span className="text-sm font-medium">Rp. {product.unitPrice.toFixed(2)}</span>
+                    <span className="text-sm font-medium">{formatCurrency(product.unitPrice)}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-sm">Cost Price:</span>
-                    <span className="text-sm font-medium">Rp. {product.costPrice.toFixed(2)}</span>
+                    <span className="text-sm font-medium">{formatCurrency(product.costPrice)}</span>
                   </div>
                   {product.categoryName && (
                     <div className="flex justify-between">

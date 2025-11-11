@@ -32,7 +32,7 @@ export default function CompanyPage() {
     phone: "",
     email: "",
     taxId: "",
-    currency: "USD",
+    currency: "IDR",
     fiscalYearStart: 1,
   });
 
