@@ -3,6 +3,7 @@ import { salesDB } from "./db";
 import { accountingDB } from "../accounting/db";
 import { inventoryDB } from "../inventory/db";
 import { requireRole } from "../auth/permissions";
+import { invalidateAccountingReports, invalidateSalesReports } from "../accounting/invalidate_cache";
 
 export interface GenerateInvoiceRequest {
   salesOrderId: number;
@@ -199,6 +200,9 @@ export const generateInvoice = api(
         `;
         await salesDB.rawExec(updateOrderQuery, salesOrderId);
       }
+
+      invalidateAccountingReports();
+      invalidateSalesReports();
 
       return {
         success: true,

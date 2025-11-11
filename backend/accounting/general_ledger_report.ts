@@ -1,6 +1,7 @@
 import { api } from "encore.dev/api";
 import { accountingDB } from "./db";
 import { requireRole } from "../auth/permissions";
+import { reportCache } from "./cache";
 
 export interface GeneralLedgerRequest {
   startDate: string;
@@ -44,6 +45,12 @@ export const generalLedgerReport = api(
   async (req: GeneralLedgerRequest): Promise<GeneralLedgerReport> => {
     requireRole(["admin", "accountant", "manager"]);
     const { startDate, endDate, accountCode } = req;
+
+    const cacheKey = `gl:${startDate}:${endDate}:${accountCode || 'all'}`;
+    const cached = reportCache.get<GeneralLedgerReport>(cacheKey);
+    if (cached) {
+      return cached;
+    }
 
     let accountFilter = '';
     let openingQueryParams: any[] = [startDate];
@@ -177,12 +184,16 @@ export const generalLedgerReport = api(
       account.entries.length > 0 || account.openingBalance !== 0
     );
 
-    return {
+    const report = {
       accounts,
       periode: {
         startDate,
         endDate
       }
     };
+
+    reportCache.set(cacheKey, report, 5 * 60 * 1000);
+
+    return report;
   }
 );

@@ -1,6 +1,7 @@
 import { api } from "encore.dev/api";
 import { salesDB } from "./db";
 import { requireRole } from "../auth/permissions";
+import { reportCache } from "../accounting/cache";
 
 export interface SalesReportRequest {
   startDate: string;
@@ -67,6 +68,12 @@ export const salesReport = api(
   async (req: SalesReportRequest): Promise<SalesReport> => {
     requireRole(["admin", "sales", "manager"]);
     const { startDate, endDate, customerId, status } = req;
+
+    const cacheKey = `sales:${startDate}:${endDate}:${customerId || 'all'}:${status || 'all'}`;
+    const cached = reportCache.get<SalesReport>(cacheKey);
+    if (cached) {
+      return cached;
+    }
 
     let customerFilter = '';
     let statusFilter = '';
@@ -209,7 +216,7 @@ export const salesReport = api(
       averagePrice: parseFloat(row.average_price)
     }));
 
-    return {
+    const report = {
       summary,
       items,
       byCustomer,
@@ -219,5 +226,9 @@ export const salesReport = api(
         endDate
       }
     };
+
+    reportCache.set(cacheKey, report, 3 * 60 * 1000);
+
+    return report;
   }
 );

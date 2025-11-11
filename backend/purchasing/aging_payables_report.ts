@@ -1,5 +1,6 @@
 import { api } from "encore.dev/api";
 import { purchasingDB } from "./db";
+import { reportCache } from "../accounting/cache";
 
 export interface AgingPayablesEntry {
   supplier_id: number;
@@ -39,6 +40,12 @@ export const agingPayablesReport = api(
   async (): Promise<AgingPayablesReport> => {
 
     const asOfDate = new Date().toISOString().split('T')[0];
+
+    const cacheKey = `ap:${asOfDate}`;
+    const cached = reportCache.get<AgingPayablesReport>(cacheKey);
+    if (cached) {
+      return cached;
+    }
 
     const rows = [];
     for await (const row of purchasingDB.query`
@@ -107,10 +114,14 @@ export const agingPayablesReport = api(
       grand_total: entries.reduce((sum, e) => sum + e.balance_due, 0),
     };
 
-    return {
+    const report = {
       entries,
       summary,
       as_of_date: asOfDate,
     };
+
+    reportCache.set(cacheKey, report, 3 * 60 * 1000);
+
+    return report;
   }
 );

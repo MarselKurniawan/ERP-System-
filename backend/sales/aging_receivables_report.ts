@@ -1,5 +1,6 @@
 import { api } from "encore.dev/api";
 import { salesDB } from "./db";
+import { reportCache } from "../accounting/cache";
 
 export interface AgingReceivablesRequest {
   asOfDate?: string;
@@ -35,6 +36,12 @@ export const agingReceivablesReport = api(
   { method: "POST", path: "/sales/reports/aging-receivables", expose: true },
   async (req: AgingReceivablesRequest): Promise<AgingReceivablesReport> => {
     const asOfDate = req.asOfDate || new Date().toISOString().split('T')[0];
+
+    const cacheKey = `ar:${asOfDate}`;
+    const cached = reportCache.get<AgingReceivablesReport>(cacheKey);
+    if (cached) {
+      return cached;
+    }
 
     const query = `
       SELECT 
@@ -95,10 +102,14 @@ export const agingReceivablesReport = api(
       totalReceivables: items.reduce((sum, i) => sum + i.remainingAmount, 0)
     };
 
-    return {
+    const report = {
       items,
       summary,
       asOfDate
     };
+
+    reportCache.set(cacheKey, report, 3 * 60 * 1000);
+
+    return report;
   }
 );

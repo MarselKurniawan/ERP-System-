@@ -1,6 +1,7 @@
 import { api } from "encore.dev/api";
 import { accountingDB } from "./db";
 import { requireRole } from "../auth/permissions";
+import { reportCache } from "./cache";
 
 export interface ProfitLossRequest {
   startDate: string;
@@ -40,6 +41,12 @@ export const profitLossReport = api(
   async (req: ProfitLossRequest): Promise<ProfitLossReport> => {
     requireRole(["admin", "accountant", "manager"]);
     const { startDate, endDate } = req;
+
+    const cacheKey = `pl:${startDate}:${endDate}`;
+    const cached = reportCache.get<ProfitLossReport>(cacheKey);
+    if (cached) {
+      return cached;
+    }
 
     const accountBalanceQuery = `
       SELECT 
@@ -114,7 +121,7 @@ export const profitLossReport = api(
     // Laba Rugi Bersih = Laba Operasional - Total Pendapatan & Beban Lain
     const labaRugiBersih = labaOperasional - totalPendapatanBebanLain;
 
-    return {
+    const report = {
       pendapatanUsaha,
       totalPendapatanUsaha,
       bebanPokokPendapatan,
@@ -134,5 +141,9 @@ export const profitLossReport = api(
         endDate
       }
     };
+
+    reportCache.set(cacheKey, report, 5 * 60 * 1000);
+
+    return report;
   }
 );

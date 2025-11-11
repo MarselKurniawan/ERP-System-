@@ -1,6 +1,7 @@
 import { api } from "encore.dev/api";
 import { accountingDB } from "./db";
 import { requireRole } from "../auth/permissions";
+import { reportCache } from "./cache";
 
 export interface CashBankRequest {
   asOfDate?: string;
@@ -33,6 +34,12 @@ export const cashBankReport = api(
   async (req: CashBankRequest): Promise<CashBankReport> => {
     requireRole(["admin", "accountant", "manager"]);
     const asOfDate = req.asOfDate || new Date().toISOString().split('T')[0];
+
+    const cacheKey = `cb:${asOfDate}`;
+    const cached = reportCache.get<CashBankReport>(cacheKey);
+    if (cached) {
+      return cached;
+    }
 
     const query = `
       SELECT 
@@ -96,7 +103,7 @@ export const cashBankReport = api(
 
     summary.grandTotal = summary.totalCash + summary.totalBank + summary.totalGiro + summary.totalOther;
 
-    return {
+    const report = {
       cash,
       bank,
       giro,
@@ -104,5 +111,9 @@ export const cashBankReport = api(
       summary,
       asOfDate
     };
+
+    reportCache.set(cacheKey, report, 5 * 60 * 1000);
+
+    return report;
   }
 );

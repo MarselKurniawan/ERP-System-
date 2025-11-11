@@ -1,6 +1,7 @@
 import { api } from "encore.dev/api";
 import { accountingDB } from "./db";
 import { requireRole } from "../auth/permissions";
+import { reportCache } from "./cache";
 
 export interface TrialBalanceEntry {
   accountId: number;
@@ -23,6 +24,12 @@ export const trialBalance = api<{ asOfDate: Date }, TrialBalanceResponse>(
   { expose: true, method: "GET", path: "/reports/trial-balance", auth: true },
   async (req) => {
     requireRole(["admin", "accountant", "manager"]);
+
+    const cacheKey = `tb:${req.asOfDate.toISOString()}`;
+    const cached = reportCache.get<TrialBalanceResponse>(cacheKey);
+    if (cached) {
+      return cached;
+    }
     const entries = await accountingDB.queryAll<TrialBalanceEntry>`
       SELECT 
         a.id as "accountId",
@@ -50,11 +57,15 @@ export const trialBalance = api<{ asOfDate: Date }, TrialBalanceResponse>(
       totalCredits += entry.creditBalance;
     }
 
-    return {
+    const report = {
       entries,
       totalDebits,
       totalCredits,
       asOfDate: req.asOfDate
     };
+
+    reportCache.set(cacheKey, report, 5 * 60 * 1000);
+
+    return report;
   }
 );

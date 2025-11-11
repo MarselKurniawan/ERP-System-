@@ -1,6 +1,7 @@
 import { api, APIError } from "encore.dev/api";
 import { accountingDB } from "./db";
 import { requireRole } from "../auth/permissions";
+import { invalidateAccountingReports } from "./invalidate_cache";
 
 export interface CreateJournalEntryRequest {
   entryDate: Date;
@@ -66,6 +67,7 @@ export const createJournalEntry = api<CreateJournalEntryRequest, JournalEntry>(
         }
 
         await tx.commit();
+        invalidateAccountingReports();
         return entry!;
       } catch (error) {
         await tx.rollback();

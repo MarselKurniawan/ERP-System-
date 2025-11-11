@@ -1,6 +1,7 @@
 import { api } from "encore.dev/api";
 import { accountingDB } from "./db";
 import { requireRole } from "../auth/permissions";
+import { reportCache } from "./cache";
 
 export interface BalanceSheetRequest {
   asOfDate: string;
@@ -43,6 +44,12 @@ export const balanceSheetReport = api(
   async (req: BalanceSheetRequest): Promise<BalanceSheetReport> => {
     requireRole(["admin", "accountant", "manager"]);
     const { asOfDate } = req;
+
+    const cacheKey = `bs:${asOfDate}`;
+    const cached = reportCache.get<BalanceSheetReport>(cacheKey);
+    if (cached) {
+      return cached;
+    }
 
     // Query untuk akun 1 (Assets)
     const assetsQuery = `
@@ -216,7 +223,7 @@ export const balanceSheetReport = api(
 
     const totalPassiva = totalLiabilities + totalEquity;
 
-    return {
+    const report = {
       assets: {
         currentAssets,
         totalCurrentAssets,
@@ -240,5 +247,9 @@ export const balanceSheetReport = api(
       totalPassiva,
       asOfDate
     };
+
+    reportCache.set(cacheKey, report, 5 * 60 * 1000);
+
+    return report;
   }
 );
