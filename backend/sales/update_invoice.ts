@@ -1,6 +1,7 @@
 import { api } from "encore.dev/api";
 import { salesDB } from "./db";
 import { accountingDB } from "../accounting/db";
+import { requireRole } from "../auth/permissions";
 
 export interface UpdateInvoiceRequest {
   id: number;
@@ -18,8 +19,9 @@ export interface UpdateInvoiceResponse {
 }
 
 export const updateInvoice = api(
-  { method: "PUT", path: "/invoices/:id", expose: true },
+  { method: "PUT", path: "/invoices/:id", expose: true, auth: true },
   async (req: UpdateInvoiceRequest): Promise<UpdateInvoiceResponse> => {
+    requireRole(["admin", "sales", "accountant", "manager"]);
     const getInvoiceQuery = `
       SELECT i.*, c.receivable_account_id, c.name as customer_name
       FROM invoices i

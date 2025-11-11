@@ -1,5 +1,6 @@
 import { api } from "encore.dev/api";
 import { salesDB } from "./db";
+import { requireRole } from "../auth/permissions";
 
 export interface CreateSalesOrderRequest {
   customerId: number;
@@ -38,8 +39,9 @@ export interface SalesOrder {
 
 // Creates a new sales order.
 export const createOrder = api<CreateSalesOrderRequest, SalesOrder>(
-  { expose: true, method: "POST", path: "/sales-orders" },
+  { expose: true, method: "POST", path: "/sales-orders", auth: true },
   async (req) => {
+    requireRole(["admin", "sales", "manager"]);
     return await salesDB.begin().then(async (tx) => {
       try {
         const orderNumber = `SO-${Date.now()}`;

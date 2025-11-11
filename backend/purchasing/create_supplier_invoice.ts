@@ -1,6 +1,7 @@
 import { api } from "encore.dev/api";
 import { purchasingDB } from "./db";
 import { accountingDB } from "../accounting/db";
+import { requireRole } from "../auth/permissions";
 
 export interface SupplierInvoiceItem {
   product_id?: number;
@@ -36,8 +37,9 @@ export interface SupplierInvoice {
 }
 
 export const createSupplierInvoice = api(
-  { method: "POST", path: "/purchasing/supplier-invoices", expose: true },
+  { method: "POST", path: "/purchasing/supplier-invoices", expose: true, auth: true },
   async (req: CreateSupplierInvoiceRequest): Promise<SupplierInvoice> => {
+    requireRole(["admin", "purchasing", "accountant", "manager"]);
 
     const subtotal = req.items.reduce((sum, item) => sum + (item.quantity * item.unit_price), 0);
     const taxAmount = req.tax_amount || 0;

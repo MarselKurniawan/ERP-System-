@@ -1,5 +1,6 @@
 import { api } from "encore.dev/api";
 import { authDB } from "./db";
+import { requireRole } from "./permissions";
 
 export interface CreateUserRequest {
   email: string;
@@ -22,8 +23,9 @@ export interface User {
 
 // Creates a new user.
 export const createUser = api<CreateUserRequest, User>(
-  { expose: true, method: "POST", path: "/users" },
+  { expose: true, method: "POST", path: "/users", auth: true },
   async (req) => {
+    requireRole(["admin"]);
     // In a real app, you'd hash the password properly
     const passwordHash = `hashed_${req.password}`;
     

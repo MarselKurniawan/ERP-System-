@@ -1,5 +1,6 @@
 import { api, APIError } from "encore.dev/api";
 import { authDB } from "./db";
+import { requireAuth } from "./permissions";
 
 export interface UpdateProfileRequest {
   token: string;
@@ -21,8 +22,9 @@ export interface User {
 
 // Updates the current user's profile.
 export const updateProfile = api<UpdateProfileRequest, User>(
-  { expose: true, method: "PUT", path: "/auth/profile" },
+  { expose: true, method: "PUT", path: "/auth/profile", auth: true },
   async (req) => {
+    requireAuth();
     // First verify the token and get user ID
     const session = await authDB.queryRow<{ userId: number }>`
       SELECT user_id as "userId"

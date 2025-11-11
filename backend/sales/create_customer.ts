@@ -1,5 +1,6 @@
 import { api } from "encore.dev/api";
 import { salesDB } from "./db";
+import { requireRole } from "../auth/permissions";
 
 export interface CreateCustomerRequest {
   name: string;
@@ -25,8 +26,9 @@ export interface Customer {
 
 // Creates a new customer.
 export const createCustomer = api<CreateCustomerRequest, Customer>(
-  { expose: true, method: "POST", path: "/customers" },
+  { expose: true, method: "POST", path: "/customers", auth: true },
   async (req) => {
+    requireRole(["admin", "sales", "manager"]);
     const customer = await salesDB.queryRow<Customer>`
       INSERT INTO customers (name, email, phone, address, tax_id, credit_limit)
       VALUES (${req.name}, ${req.email || null}, ${req.phone || null}, ${req.address || null}, ${req.taxId || null}, ${req.creditLimit || 0})

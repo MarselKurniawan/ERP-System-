@@ -1,5 +1,6 @@
 import { api } from "encore.dev/api";
 import { accountingDB } from "./db";
+import { requireRole } from "../auth/permissions";
 
 export interface GeneralLedgerRequest {
   startDate: string;
@@ -39,8 +40,9 @@ export interface GeneralLedgerReport {
 }
 
 export const generalLedgerReport = api(
-  { method: "POST", path: "/accounting/reports/general-ledger", expose: true },
+  { method: "POST", path: "/accounting/reports/general-ledger", expose: true, auth: true },
   async (req: GeneralLedgerRequest): Promise<GeneralLedgerReport> => {
+    requireRole(["admin", "accountant", "manager"]);
     const { startDate, endDate, accountCode } = req;
 
     let accountFilter = '';

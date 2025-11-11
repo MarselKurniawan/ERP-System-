@@ -1,5 +1,6 @@
 import { api } from "encore.dev/api";
 import { companyDB } from "./db";
+import { requireRole } from "../auth/permissions";
 
 export interface CreateCompanyRequest {
   name: string;
@@ -24,8 +25,9 @@ export interface Company {
 
 // Creates a new company.
 export const create = api<CreateCompanyRequest, Company>(
-  { expose: true, method: "POST", path: "/companies" },
+  { expose: true, method: "POST", path: "/companies", auth: true },
   async (req) => {
+    requireRole(["admin"]);
     const company = await companyDB.queryRow<Company>`
       INSERT INTO companies (name, address, phone, email, tax_id)
       VALUES (${req.name}, ${req.address || null}, ${req.phone || null}, ${req.email || null}, ${req.taxId || null})

@@ -1,5 +1,6 @@
 import { api } from "encore.dev/api";
 import { accountingDB } from "./db";
+import { requireRole } from "../auth/permissions";
 
 export interface BalanceSheetRequest {
   asOfDate: string;
@@ -38,8 +39,9 @@ export interface BalanceSheetReport {
 }
 
 export const balanceSheetReport = api(
-  { method: "POST", path: "/accounting/reports/balance-sheet", expose: true },
+  { method: "POST", path: "/accounting/reports/balance-sheet", expose: true, auth: true },
   async (req: BalanceSheetRequest): Promise<BalanceSheetReport> => {
+    requireRole(["admin", "accountant", "manager"]);
     const { asOfDate } = req;
 
     // Query untuk akun 1 (Assets)

@@ -2,6 +2,7 @@ import { api } from "encore.dev/api";
 import { salesDB } from "./db";
 import { accountingDB } from "../accounting/db";
 import { inventoryDB } from "../inventory/db";
+import { requireRole } from "../auth/permissions";
 
 export interface GenerateInvoiceRequest {
   salesOrderId: number;
@@ -18,8 +19,9 @@ export interface GenerateInvoiceResponse {
 }
 
 export const generateInvoice = api(
-  { method: "POST", path: "/sales/generate-invoice", expose: true },
+  { method: "POST", path: "/sales/generate-invoice", expose: true, auth: true },
   async (req: GenerateInvoiceRequest): Promise<GenerateInvoiceResponse> => {
+    requireRole(["admin", "sales", "manager"]);
     const { salesOrderId, invoiceDate, dueDate, notes } = req;
 
     try {

@@ -1,5 +1,6 @@
 import { api } from "encore.dev/api";
 import { inventoryDB } from "./db";
+import { requireRole } from "../auth/permissions";
 
 export interface CreateProductRequest {
   sku: string;
@@ -39,8 +40,9 @@ export interface Product {
 
 // Creates a new product.
 export const createProduct = api<CreateProductRequest, Product>(
-  { expose: true, method: "POST", path: "/products" },
+  { expose: true, method: "POST", path: "/products", auth: true },
   async (req) => {
+    requireRole(["admin", "manager"]);
     const product = await inventoryDB.queryRow<Product>`
       INSERT INTO products (sku, name, description, category_id, product_type, unit_price, cost_price, revenue_account_id, cogs_account_id, stock_quantity, min_stock_level, max_stock_level, unit)
       VALUES (${req.sku}, ${req.name}, ${req.description || null}, ${req.categoryId || null}, ${req.productType}, ${req.unitPrice}, ${req.costPrice}, ${req.revenueAccountId || null}, ${req.cogsAccountId || null}, ${req.stockQuantity || 0}, ${req.minStockLevel || 0}, ${req.maxStockLevel || null}, ${req.unit || 'pcs'})

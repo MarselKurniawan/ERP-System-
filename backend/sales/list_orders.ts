@@ -1,5 +1,6 @@
 import { api } from "encore.dev/api";
 import { salesDB } from "./db";
+import { requireAuth } from "../auth/permissions";
 
 export interface SalesOrder {
   id: number;
@@ -24,8 +25,9 @@ export interface ListSalesOrdersResponse {
 
 // Retrieves all sales orders with customer information.
 export const listOrders = api<void, ListSalesOrdersResponse>(
-  { expose: true, method: "GET", path: "/sales-orders" },
+  { expose: true, method: "GET", path: "/sales-orders", auth: true },
   async () => {
+    requireAuth();
     const orders = await salesDB.queryAll<SalesOrder>`
       SELECT 
         so.id, so.order_number as "orderNumber", so.customer_id as "customerId", c.name as "customerName",

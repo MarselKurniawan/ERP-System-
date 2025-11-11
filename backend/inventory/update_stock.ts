@@ -1,5 +1,6 @@
 import { api } from "encore.dev/api";
 import { inventoryDB } from "./db";
+import { requireRole } from "../auth/permissions";
 
 export interface UpdateStockRequest {
   productId: number;
@@ -23,8 +24,9 @@ export interface StockMovement {
 
 // Updates product stock and records the movement.
 export const updateStock = api<UpdateStockRequest, StockMovement>(
-  { expose: true, method: "POST", path: "/products/:productId/stock" },
+  { expose: true, method: "POST", path: "/products/:productId/stock", auth: true },
   async (req) => {
+    requireRole(["admin", "manager"]);
     await inventoryDB.begin().then(async (tx) => {
       try {
         const quantityChange = req.movementType === 'out' ? -req.quantity : req.quantity;

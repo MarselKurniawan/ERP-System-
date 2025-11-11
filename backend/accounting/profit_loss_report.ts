@@ -1,5 +1,6 @@
 import { api } from "encore.dev/api";
 import { accountingDB } from "./db";
+import { requireRole } from "../auth/permissions";
 
 export interface ProfitLossRequest {
   startDate: string;
@@ -35,8 +36,9 @@ export interface ProfitLossReport {
 }
 
 export const profitLossReport = api(
-  { method: "POST", path: "/accounting/reports/profit-loss", expose: true },
+  { method: "POST", path: "/accounting/reports/profit-loss", expose: true, auth: true },
   async (req: ProfitLossRequest): Promise<ProfitLossReport> => {
+    requireRole(["admin", "accountant", "manager"]);
     const { startDate, endDate } = req;
 
     const accountBalanceQuery = `

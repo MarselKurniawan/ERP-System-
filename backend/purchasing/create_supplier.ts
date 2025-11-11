@@ -1,5 +1,6 @@
 import { api } from "encore.dev/api";
 import { purchasingDB } from "./db";
+import { requireRole } from "../auth/permissions";
 
 export interface CreateSupplierRequest {
   name: string;
@@ -25,8 +26,9 @@ export interface Supplier {
 
 // Creates a new supplier.
 export const createSupplier = api<CreateSupplierRequest, Supplier>(
-  { expose: true, method: "POST", path: "/suppliers" },
+  { expose: true, method: "POST", path: "/suppliers", auth: true },
   async (req) => {
+    requireRole(["admin", "purchasing", "manager"]);
     const supplier = await purchasingDB.queryRow<Supplier>`
       INSERT INTO suppliers (name, email, phone, address, tax_id, payment_terms)
       VALUES (${req.name}, ${req.email || null}, ${req.phone || null}, ${req.address || null}, ${req.taxId || null}, ${req.paymentTerms || null})

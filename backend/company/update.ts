@@ -1,5 +1,6 @@
 import { api, APIError } from "encore.dev/api";
 import { companyDB } from "./db";
+import { requireRole } from "../auth/permissions";
 
 export interface UpdateCompanyRequest {
   id: number;
@@ -25,8 +26,9 @@ export interface Company {
 
 // Updates a company.
 export const update = api<UpdateCompanyRequest, Company>(
-  { expose: true, method: "PUT", path: "/companies/:id" },
+  { expose: true, method: "PUT", path: "/companies/:id", auth: true },
   async (req) => {
+    requireRole(["admin"]);
     const company = await companyDB.queryRow<Company>`
       UPDATE companies 
       SET 

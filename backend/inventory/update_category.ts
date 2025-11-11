@@ -1,5 +1,6 @@
 import { api, APIError } from "encore.dev/api";
 import { inventoryDB } from "./db";
+import { requireRole } from "../auth/permissions";
 
 export interface UpdateCategoryRequest {
   id: number;
@@ -16,8 +17,9 @@ export interface Category {
 
 // Updates a category.
 export const updateCategory = api<UpdateCategoryRequest, Category>(
-  { expose: true, method: "PUT", path: "/categories/:id" },
+  { expose: true, method: "PUT", path: "/categories/:id", auth: true },
   async (req) => {
+    requireRole(["admin", "manager"]);
     const category = await inventoryDB.queryRow<Category>`
       UPDATE categories 
       SET 

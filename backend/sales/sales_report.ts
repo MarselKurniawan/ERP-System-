@@ -1,5 +1,6 @@
 import { api } from "encore.dev/api";
 import { salesDB } from "./db";
+import { requireRole } from "../auth/permissions";
 
 export interface SalesReportRequest {
   startDate: string;
@@ -62,8 +63,9 @@ export interface SalesReport {
 }
 
 export const salesReport = api(
-  { method: "POST", path: "/sales/reports/sales", expose: true },
+  { method: "POST", path: "/sales/reports/sales", expose: true, auth: true },
   async (req: SalesReportRequest): Promise<SalesReport> => {
+    requireRole(["admin", "sales", "manager"]);
     const { startDate, endDate, customerId, status } = req;
 
     let customerFilter = '';

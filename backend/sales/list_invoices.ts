@@ -1,5 +1,6 @@
 import { api } from "encore.dev/api";
 import { salesDB } from "./db";
+import { requireAuth } from "../auth/permissions";
 
 export interface Invoice {
   id: number;
@@ -24,8 +25,9 @@ export interface InvoiceListResponse {
 }
 
 export const listInvoices = api<void, InvoiceListResponse>(
-  { expose: true, method: "GET", path: "/invoices" },
+  { expose: true, method: "GET", path: "/invoices", auth: true },
   async () => {
+    requireAuth();
     const query = `
       SELECT 
         i.*,

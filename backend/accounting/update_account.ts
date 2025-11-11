@@ -1,5 +1,6 @@
 import { api, APIError } from "encore.dev/api";
 import { accountingDB } from "./db";
+import { requireRole } from "../auth/permissions";
 
 export interface UpdateAccountRequest {
   id: number;
@@ -23,8 +24,9 @@ export interface Account {
 
 // Updates an account.
 export const updateAccount = api<UpdateAccountRequest, Account>(
-  { expose: true, method: "PUT", path: "/accounts/:id" },
+  { expose: true, method: "PUT", path: "/accounts/:id", auth: true },
   async (req) => {
+    requireRole(["admin", "accountant"]);
     const account = await accountingDB.queryRow<Account>`
       UPDATE chart_of_accounts 
       SET 

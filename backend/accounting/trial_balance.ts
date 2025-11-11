@@ -1,5 +1,6 @@
 import { api } from "encore.dev/api";
 import { accountingDB } from "./db";
+import { requireRole } from "../auth/permissions";
 
 export interface TrialBalanceEntry {
   accountId: number;
@@ -19,8 +20,9 @@ export interface TrialBalanceResponse {
 
 // Generates a trial balance report as of a specific date.
 export const trialBalance = api<{ asOfDate: Date }, TrialBalanceResponse>(
-  { expose: true, method: "GET", path: "/reports/trial-balance" },
+  { expose: true, method: "GET", path: "/reports/trial-balance", auth: true },
   async (req) => {
+    requireRole(["admin", "accountant", "manager"]);
     const entries = await accountingDB.queryAll<TrialBalanceEntry>`
       SELECT 
         a.id as "accountId",

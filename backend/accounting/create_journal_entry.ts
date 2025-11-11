@@ -1,5 +1,6 @@
 import { api, APIError } from "encore.dev/api";
 import { accountingDB } from "./db";
+import { requireRole } from "../auth/permissions";
 
 export interface CreateJournalEntryRequest {
   entryDate: Date;
@@ -32,8 +33,9 @@ export interface JournalEntry {
 
 // Creates a new journal entry with validation for balanced debits and credits.
 export const createJournalEntry = api<CreateJournalEntryRequest, JournalEntry>(
-  { expose: true, method: "POST", path: "/journal-entries" },
+  { expose: true, method: "POST", path: "/journal-entries", auth: true },
   async (req) => {
+    requireRole(["admin", "accountant"]);
     let totalDebit = 0;
     let totalCredit = 0;
 

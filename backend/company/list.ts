@@ -1,5 +1,6 @@
 import { api } from "encore.dev/api";
 import { companyDB } from "./db";
+import { requireAuth } from "../auth/permissions";
 
 export interface Company {
   id: number;
@@ -18,8 +19,9 @@ export interface ListCompaniesResponse {
 
 // Retrieves all companies.
 export const list = api<void, ListCompaniesResponse>(
-  { expose: true, method: "GET", path: "/companies" },
+  { expose: true, method: "GET", path: "/companies", auth: true },
   async () => {
+    requireAuth();
     const companies = await companyDB.queryAll<Company>`
       SELECT id, name, address, phone, email, tax_id as "taxId", created_at as "createdAt", updated_at as "updatedAt"
       FROM companies

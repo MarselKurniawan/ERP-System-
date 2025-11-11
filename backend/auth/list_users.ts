@@ -1,5 +1,6 @@
 import { api } from "encore.dev/api";
 import { authDB } from "./db";
+import { requireRole } from "./permissions";
 
 export interface User {
   id: number;
@@ -18,8 +19,9 @@ export interface ListUsersResponse {
 
 // Retrieves all users.
 export const listUsers = api<void, ListUsersResponse>(
-  { expose: true, method: "GET", path: "/users" },
+  { expose: true, method: "GET", path: "/users", auth: true },
   async () => {
+    requireRole(["admin"]);
     const users = await authDB.queryAll<User>`
       SELECT id, email, first_name as "firstName", last_name as "lastName", role, is_active as "isActive", created_at as "createdAt", updated_at as "updatedAt"
       FROM users

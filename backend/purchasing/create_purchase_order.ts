@@ -1,5 +1,6 @@
 import { api } from "encore.dev/api";
 import { purchasingDB } from "./db";
+import { requireRole } from "../auth/permissions";
 
 export interface CreatePurchaseOrderRequest {
   supplierId: number;
@@ -38,8 +39,9 @@ export interface PurchaseOrder {
 
 // Creates a new purchase order.
 export const createPurchaseOrder = api<CreatePurchaseOrderRequest, PurchaseOrder>(
-  { expose: true, method: "POST", path: "/purchase-orders" },
+  { expose: true, method: "POST", path: "/purchase-orders", auth: true },
   async (req) => {
+    requireRole(["admin", "purchasing", "manager"]);
     return await purchasingDB.begin().then(async (tx) => {
       try {
         const orderNumber = `PO-${Date.now()}`;

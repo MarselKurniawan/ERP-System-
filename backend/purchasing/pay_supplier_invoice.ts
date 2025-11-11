@@ -1,7 +1,7 @@
 import { api } from "encore.dev/api";
-import { getAuthData } from "~encore/auth";
 import { purchasingDB } from "./db";
 import { accountingDB } from "../accounting/db";
+import { requireRole } from "../auth/permissions";
 
 export interface PaySupplierInvoiceRequest {
   id: number;
@@ -28,7 +28,7 @@ export interface SupplierInvoicePayment {
 export const paySupplierInvoice = api(
   { method: "POST", path: "/purchasing/supplier-invoices/:id/pay", expose: true, auth: true },
   async (req: PaySupplierInvoiceRequest): Promise<SupplierInvoicePayment> => {
-    getAuthData();
+    requireRole(["admin", "purchasing", "accountant", "manager"]);
 
     const tx = await purchasingDB.begin();
     try {

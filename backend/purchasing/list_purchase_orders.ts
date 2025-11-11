@@ -1,5 +1,6 @@
 import { api } from "encore.dev/api";
 import { purchasingDB } from "./db";
+import { requireAuth } from "../auth/permissions";
 
 export interface PurchaseOrder {
   id: number;
@@ -24,8 +25,9 @@ export interface ListPurchaseOrdersResponse {
 
 // Retrieves all purchase orders with supplier information.
 export const listPurchaseOrders = api<void, ListPurchaseOrdersResponse>(
-  { expose: true, method: "GET", path: "/purchase-orders" },
+  { expose: true, method: "GET", path: "/purchase-orders", auth: true },
   async () => {
+    requireAuth();
     const orders = await purchasingDB.queryAll<PurchaseOrder>`
       SELECT 
         po.id, po.order_number as "orderNumber", po.supplier_id as "supplierId", s.name as "supplierName",

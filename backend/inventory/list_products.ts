@@ -1,5 +1,6 @@
 import { api } from "encore.dev/api";
 import { inventoryDB } from "./db";
+import { requireAuth } from "../auth/permissions";
 
 export interface Product {
   id: number;
@@ -28,8 +29,9 @@ export interface ListProductsResponse {
 
 // Retrieves all products with category information.
 export const listProducts = api<void, ListProductsResponse>(
-  { expose: true, method: "GET", path: "/products" },
+  { expose: true, method: "GET", path: "/products", auth: true },
   async () => {
+    requireAuth();
     const products = await inventoryDB.queryAll<Product>`
       SELECT 
         p.id, p.sku, p.name, p.description, 

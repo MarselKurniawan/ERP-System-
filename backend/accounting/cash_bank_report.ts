@@ -1,5 +1,6 @@
 import { api } from "encore.dev/api";
 import { accountingDB } from "./db";
+import { requireRole } from "../auth/permissions";
 
 export interface CashBankRequest {
   asOfDate?: string;
@@ -28,8 +29,9 @@ export interface CashBankReport {
 }
 
 export const cashBankReport = api(
-  { method: "POST", path: "/accounting/reports/cash-bank", expose: true },
+  { method: "POST", path: "/accounting/reports/cash-bank", expose: true, auth: true },
   async (req: CashBankRequest): Promise<CashBankReport> => {
+    requireRole(["admin", "accountant", "manager"]);
     const asOfDate = req.asOfDate || new Date().toISOString().split('T')[0];
 
     const query = `
