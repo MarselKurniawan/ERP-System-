@@ -248,9 +248,9 @@ export default function ReportsPage() {
   const generateAgingReceivablesReport = async () => {
     setIsLoading(true);
     try {
-      const data = await backend.sales.agingReceivablesReport({
-        asOfDate: agingDate || undefined
-      });
+      const data = await backend.sales.agingReceivablesReport(
+        agingDate ? { asOfDate: agingDate } : {}
+      );
       setAgingReceivablesData(data);
       toast({ title: "Success", description: "Aging receivables report generated successfully" });
     } catch (error) {
@@ -264,9 +264,9 @@ export default function ReportsPage() {
   const generateCashBankReport = async () => {
     setIsLoading(true);
     try {
-      const data = await backend.accounting.cashBankReport({
-        asOfDate: cashBankDate || undefined
-      });
+      const data = await backend.accounting.cashBankReport(
+        cashBankDate ? { asOfDate: cashBankDate } : {}
+      );
       setCashBankData(data);
       toast({ title: "Success", description: "Cash/Bank report generated successfully" });
     } catch (error) {

@@ -52,7 +52,7 @@ export const agingReceivablesReport = api(
         i.total_amount,
         i.paid_amount,
         (i.total_amount - i.paid_amount) as remaining_amount,
-        GREATEST(0, DATE_PART('day', $1::date - i.due_date::date)) as days_past_due,
+        GREATEST(0, CAST($1 AS DATE) - CAST(i.due_date AS DATE)) as days_past_due,
         30 as payment_terms
       FROM invoices i
       INNER JOIN customers c ON i.customer_id = c.id
