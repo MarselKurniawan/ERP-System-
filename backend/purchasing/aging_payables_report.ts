@@ -1,5 +1,4 @@
 import { api } from "encore.dev/api";
-import { getAuthData } from "~encore/auth";
 import { purchasingDB } from "./db";
 
 export interface AgingPayablesEntry {
@@ -36,9 +35,8 @@ export interface AgingPayablesReport {
 }
 
 export const agingPayablesReport = api(
-  { method: "GET", path: "/purchasing/aging-payables-report", expose: true, auth: true },
+  { method: "GET", path: "/purchasing/aging-payables-report", expose: true },
   async (): Promise<AgingPayablesReport> => {
-    getAuthData();
 
     const asOfDate = new Date().toISOString().split('T')[0];
 

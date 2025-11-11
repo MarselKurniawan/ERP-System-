@@ -46,12 +46,13 @@ export const agingReceivablesReport = api(
         i.paid_amount,
         (i.total_amount - i.paid_amount) as remaining_amount,
         GREATEST(0, DATE_PART('day', $1::date - i.due_date::date)) as days_past_due,
-        COALESCE(i.payment_terms, 30) as payment_terms
+        30 as payment_terms
       FROM invoices i
       INNER JOIN customers c ON i.customer_id = c.id
-      WHERE i.payment_status != 'paid'
+      WHERE i.status != 'paid'
         AND i.status != 'cancelled'
         AND i.invoice_date <= $1
+        AND (i.total_amount - i.paid_amount) > 0
       ORDER BY days_past_due DESC, i.invoice_date
     `;
 
