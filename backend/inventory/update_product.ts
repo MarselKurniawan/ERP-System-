@@ -7,9 +7,11 @@ export interface UpdateProductRequest {
   name?: string;
   description?: string;
   categoryId?: number;
+  productType?: "stockable" | "service";
   unitPrice?: number;
   costPrice?: number;
   revenueAccountId?: number;
+  cogsAccountId?: number;
   minStockLevel?: number;
   maxStockLevel?: number;
   unit?: string;
@@ -22,9 +24,11 @@ export interface Product {
   name: string;
   description?: string;
   categoryId?: number;
+  productType: "stockable" | "service";
   unitPrice: number;
   costPrice: number;
   revenueAccountId?: number;
+  cogsAccountId?: number;
   stockQuantity: number;
   minStockLevel: number;
   maxStockLevel?: number;
@@ -45,16 +49,18 @@ export const updateProduct = api<UpdateProductRequest, Product>(
         name = COALESCE(${req.name}, name),
         description = COALESCE(${req.description}, description),
         category_id = COALESCE(${req.categoryId}, category_id),
+        product_type = COALESCE(${req.productType}, product_type),
         unit_price = COALESCE(${req.unitPrice}, unit_price),
         cost_price = COALESCE(${req.costPrice}, cost_price),
         revenue_account_id = COALESCE(${req.revenueAccountId}, revenue_account_id),
+        cogs_account_id = COALESCE(${req.cogsAccountId}, cogs_account_id),
         min_stock_level = COALESCE(${req.minStockLevel}, min_stock_level),
         max_stock_level = COALESCE(${req.maxStockLevel}, max_stock_level),
         unit = COALESCE(${req.unit}, unit),
         is_active = COALESCE(${req.isActive}, is_active),
         updated_at = NOW()
       WHERE id = ${req.id}
-      RETURNING id, sku, name, description, category_id as "categoryId", unit_price as "unitPrice", cost_price as "costPrice", revenue_account_id as "revenueAccountId", stock_quantity as "stockQuantity", min_stock_level as "minStockLevel", max_stock_level as "maxStockLevel", unit, is_active as "isActive", created_at as "createdAt", updated_at as "updatedAt"
+      RETURNING id, sku, name, description, category_id as "categoryId", product_type as "productType", unit_price as "unitPrice", cost_price as "costPrice", revenue_account_id as "revenueAccountId", cogs_account_id as "cogsAccountId", stock_quantity as "stockQuantity", min_stock_level as "minStockLevel", max_stock_level as "maxStockLevel", unit, is_active as "isActive", created_at as "createdAt", updated_at as "updatedAt"
     `;
     
     if (!product) {

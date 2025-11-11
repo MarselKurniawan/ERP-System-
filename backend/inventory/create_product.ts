@@ -6,9 +6,11 @@ export interface CreateProductRequest {
   name: string;
   description?: string;
   categoryId?: number;
+  productType: "stockable" | "service";
   unitPrice: number;
   costPrice: number;
   revenueAccountId?: number;
+  cogsAccountId?: number;
   stockQuantity?: number;
   minStockLevel?: number;
   maxStockLevel?: number;
@@ -21,9 +23,11 @@ export interface Product {
   name: string;
   description?: string;
   categoryId?: number;
+  productType: "stockable" | "service";
   unitPrice: number;
   costPrice: number;
   revenueAccountId?: number;
+  cogsAccountId?: number;
   stockQuantity: number;
   minStockLevel: number;
   maxStockLevel?: number;
@@ -38,9 +42,9 @@ export const createProduct = api<CreateProductRequest, Product>(
   { expose: true, method: "POST", path: "/products" },
   async (req) => {
     const product = await inventoryDB.queryRow<Product>`
-      INSERT INTO products (sku, name, description, category_id, unit_price, cost_price, revenue_account_id, stock_quantity, min_stock_level, max_stock_level, unit)
-      VALUES (${req.sku}, ${req.name}, ${req.description || null}, ${req.categoryId || null}, ${req.unitPrice}, ${req.costPrice}, ${req.revenueAccountId || null}, ${req.stockQuantity || 0}, ${req.minStockLevel || 0}, ${req.maxStockLevel || null}, ${req.unit || 'pcs'})
-      RETURNING id, sku, name, description, category_id as "categoryId", unit_price as "unitPrice", cost_price as "costPrice", revenue_account_id as "revenueAccountId", stock_quantity as "stockQuantity", min_stock_level as "minStockLevel", max_stock_level as "maxStockLevel", unit, is_active as "isActive", created_at as "createdAt", updated_at as "updatedAt"
+      INSERT INTO products (sku, name, description, category_id, product_type, unit_price, cost_price, revenue_account_id, cogs_account_id, stock_quantity, min_stock_level, max_stock_level, unit)
+      VALUES (${req.sku}, ${req.name}, ${req.description || null}, ${req.categoryId || null}, ${req.productType}, ${req.unitPrice}, ${req.costPrice}, ${req.revenueAccountId || null}, ${req.cogsAccountId || null}, ${req.stockQuantity || 0}, ${req.minStockLevel || 0}, ${req.maxStockLevel || null}, ${req.unit || 'pcs'})
+      RETURNING id, sku, name, description, category_id as "categoryId", product_type as "productType", unit_price as "unitPrice", cost_price as "costPrice", revenue_account_id as "revenueAccountId", cogs_account_id as "cogsAccountId", stock_quantity as "stockQuantity", min_stock_level as "minStockLevel", max_stock_level as "maxStockLevel", unit, is_active as "isActive", created_at as "createdAt", updated_at as "updatedAt"
     `;
 
     if (req.stockQuantity && req.stockQuantity > 0) {

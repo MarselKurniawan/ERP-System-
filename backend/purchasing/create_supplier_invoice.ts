@@ -1,5 +1,4 @@
 import { api } from "encore.dev/api";
-import { getAuthData } from "~encore/auth";
 import { purchasingDB } from "./db";
 import { accountingDB } from "../accounting/db";
 
@@ -37,9 +36,8 @@ export interface SupplierInvoice {
 }
 
 export const createSupplierInvoice = api(
-  { method: "POST", path: "/purchasing/supplier-invoices", expose: true, auth: true },
+  { method: "POST", path: "/purchasing/supplier-invoices", expose: true },
   async (req: CreateSupplierInvoiceRequest): Promise<SupplierInvoice> => {
-    getAuthData();
 
     const subtotal = req.items.reduce((sum, item) => sum + (item.quantity * item.unit_price), 0);
     const taxAmount = req.tax_amount || 0;

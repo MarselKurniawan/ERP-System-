@@ -38,6 +38,7 @@ export default function InventoryPage() {
     name: "",
     description: "",
     categoryId: undefined,
+    productType: "stockable",
     unitPrice: 0,
     costPrice: 0,
     stockQuantity: 0,
@@ -198,6 +199,7 @@ export default function InventoryPage() {
       name: "",
       description: "",
       categoryId: undefined,
+      productType: "stockable",
       unitPrice: 0,
       costPrice: 0,
       stockQuantity: 0,
@@ -247,9 +249,11 @@ export default function InventoryPage() {
       name: product.name,
       description: product.description || "",
       categoryId: product.categoryId,
+      productType: product.productType || "stockable",
       unitPrice: product.unitPrice,
       costPrice: product.costPrice,
       revenueAccountId: product.revenueAccountId,
+      cogsAccountId: product.cogsAccountId,
       stockQuantity: product.stockQuantity,
       minStockLevel: product.minStockLevel,
       maxStockLevel: product.maxStockLevel,
@@ -344,6 +348,21 @@ export default function InventoryPage() {
                       />
                     </div>
                     <div>
+                      <Label htmlFor="productType">Product Type *</Label>
+                      <Select
+                        value={productData.productType}
+                        onValueChange={(value: "stockable" | "service") => setProductData({ ...productData, productType: value })}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="stockable">Stockable (Physical Product)</SelectItem>
+                          <SelectItem value="service">Service (Jasa)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
                       <Label htmlFor="category">Category</Label>
                       <Select
                         value={productData.categoryId?.toString() || ""}
@@ -412,7 +431,30 @@ export default function InventoryPage() {
                         Account to record revenue when this product is sold (account code 4xxx)
                       </p>
                     </div>
-                    {!editingProduct && (
+                    <div>
+                      <Label htmlFor="cogsAccountId">HPP/COGS Account (Optional)</Label>
+                      <Select
+                        value={productData.cogsAccountId?.toString() || ""}
+                        onValueChange={(value) => setProductData({ ...productData, cogsAccountId: value ? parseInt(value) : undefined })}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select COGS account" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {accounts?.accounts
+                            .filter(acc => acc.accountCode.startsWith('5'))
+                            .map((account) => (
+                            <SelectItem key={account.id} value={account.id.toString()}>
+                              {account.accountCode} - {account.accountName}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Account to record cost of goods sold (account code 5xxx)
+                      </p>
+                    </div>
+                    {!editingProduct && productData.productType === "stockable" && (
                       <div>
                         <Label htmlFor="stockQuantity">Initial Stock</Label>
                         <Input
@@ -459,10 +501,13 @@ export default function InventoryPage() {
               <Card key={product.id}>
                 <CardHeader>
                   <div className="flex justify-between items-start">
-                    <div>
-                      <CardTitle className="flex items-center">
-                        <Package className="mr-2 h-5 w-5" />
+                    <div className="flex-1">
+                      <CardTitle className="flex items-center gap-2">
+                        <Package className="h-5 w-5" />
                         {product.name}
+                        {product.productType === "stockable" && (
+                          <Badge variant="outline" className="ml-2">Stockable</Badge>
+                        )}
                       </CardTitle>
                       <p className="text-sm text-gray-600">SKU: {product.sku}</p>
                     </div>
@@ -486,12 +531,14 @@ export default function InventoryPage() {
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-2">
-                  <div className="flex justify-between">
-                    <span className="text-sm">Stock:</span>
-                    <Badge variant={product.stockQuantity <= product.minStockLevel ? "destructive" : "default"}>
-                      {product.stockQuantity} {product.unit}
-                    </Badge>
-                  </div>
+                  {product.productType === "stockable" && (
+                    <div className="flex justify-between">
+                      <span className="text-sm">Stock:</span>
+                      <Badge variant={product.stockQuantity <= product.minStockLevel ? "destructive" : "default"}>
+                        {product.stockQuantity} {product.unit}
+                      </Badge>
+                    </div>
+                  )}
                   <div className="flex justify-between">
                     <span className="text-sm">Unit Price:</span>
                     <span className="text-sm font-medium">{formatCurrency(product.unitPrice)}</span>
